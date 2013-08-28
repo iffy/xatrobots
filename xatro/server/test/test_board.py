@@ -1,7 +1,7 @@
 from twisted.trial.unittest import TestCase
 
 
-from xatro.server.board import Square, Pylon
+from xatro.server.board import Square, Pylon, Material
 
 
 class SquareTest(TestCase):
@@ -31,3 +31,16 @@ class PylonTest(TestCase):
         self.assertEqual(p.locks, 3)
         self.assertEqual(p.team, None)
         self.assertEqual(p.work, None)
+
+
+
+class MaterialTest(TestCase):
+
+
+    def test_attributes(self):
+        """
+        Should have a use and a health
+        """
+        m = Material()
+        self.assertEqual(m.health, None)
+        self.assertEqual(m.current_use, None)
