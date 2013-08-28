@@ -2,6 +2,8 @@
 xatrobot
 ===============================================================================
 
+[![Build Status](https://secure.travis-ci.org/iffy/xatrobots.png)](http://travis-ci.org/iffy/xatrobots)
+
 Extremely Advanced T-Robot
 
 xatrobot is a game somewhat like AT-Robots, but instead of progamming single
