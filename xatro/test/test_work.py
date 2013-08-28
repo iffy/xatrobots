@@ -82,7 +82,6 @@ class WorkMakerTest(TestCase):
         """
         maker = WorkMaker()
         work = maker.getWork()
-        pool = map(chr, xrange(0, 255))
         result = findResult(work.nonce, work.difficulty, work.scale)
         self.assertEqual(maker.isResult(work, result), True)
 
