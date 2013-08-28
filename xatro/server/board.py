@@ -30,11 +30,13 @@ class Pylon(object):
     @ivar team: Team name that owns me
     @type team: str
 
-    @ivar work: The L{Work} required to unlock the next lock.
+    @ivar unlock_work: The L{Work} required to unlock the next lock.
+    @ivar lock_work: The L{Work} required to add another lock.
     """
 
     team = None
-    work = None
+    unlock_work = None
+    lock_work = None
 
     def __init__(self, locks):
         self.locks = locks
@@ -52,3 +54,44 @@ class Material(object):
 
     health = None
     current_use = None
+
+
+
+class Bot(object):
+    """
+    I am a bot in play.
+
+    @ivar team: Team name
+    @ivar name: Bot name
+    @ivar health: Amount of health left. 0 = dead.
+    @ivar equipment: Any piece of equipment I have.
+    @ivar portal: The portal where I landed.
+    @ivar square: The square I'm in right now.
+    """
+
+    team = None
+    name = None
+    health = 10
+    equipment = None
+    portal = None
+    square = None
+
+
+    def __init__(self, team, name):
+        self.team = team
+        self.name = name
+        self.energy = []
+
+
+
+class Energy(object):
+    """
+    I am energy.  ooowwaaoooohhhh
+
+    @ivar bot: The L{Bot} that produced me.
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
+
+

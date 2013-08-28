@@ -1,7 +1,7 @@
 from twisted.trial.unittest import TestCase
 
 
-from xatro.server.board import Square, Pylon, Material
+from xatro.server.board import Square, Pylon, Material, Bot, Energy
 
 
 class SquareTest(TestCase):
@@ -30,7 +30,8 @@ class PylonTest(TestCase):
         p = Pylon(3)
         self.assertEqual(p.locks, 3)
         self.assertEqual(p.team, None)
-        self.assertEqual(p.work, None)
+        self.assertEqual(p.unlock_work, None)
+        self.assertEqual(p.lock_work, None)
 
 
 
@@ -44,3 +45,37 @@ class MaterialTest(TestCase):
         m = Material()
         self.assertEqual(m.health, None)
         self.assertEqual(m.current_use, None)
+
+
+
+class BotTest(TestCase):
+
+
+    def test_attributes(self):
+        """
+        Should have health, energy, a name, equipment, a portal, a square,
+        a team.
+        """
+        b = Bot('foo', 'bob')
+        self.assertEqual(b.health, 10)
+        self.assertEqual(b.energy, [])
+        self.assertEqual(b.name, 'bob')
+        self.assertEqual(b.team, 'foo')
+        self.assertEqual(b.equipment, None)
+        self.assertEqual(b.portal, None)
+        self.assertEqual(b.square, None)
+
+
+
+class EnergyTest(TestCase):
+
+
+    def test_attributes(self):
+        """
+        Should know the bot who made me.
+        """
+        bot = object()
+        e = Energy(bot)
+        self.assertEqual(e.bot, bot)
+
+

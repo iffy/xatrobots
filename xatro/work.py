@@ -58,3 +58,15 @@ class WorkMaker(object):
         result = int(sha1(nonce + answer).hexdigest(), 16)
         threshold = (scale - difficulty) * (self.MAX_SHA / scale)
         return result > threshold
+
+
+    def workFor(self, action, obj):
+        """
+        Get some L{Work} for a specific type of action.
+
+        @param action: Name of the action.  I ignore this.
+        @param obj: Object involved with the action.  I ignore this, too.
+
+        @return: A L{Work} instance.
+        """
+        return self.getWork()

@@ -92,4 +92,19 @@ class WorkMakerTest(TestCase):
         """
         maker = WorkMaker()
         work = Work(1, 100000, 'foo')
-        self.assertEqual(maker.isResult(work, 'hey'), False)        
+        self.assertEqual(maker.isResult(work, 'hey'), False)
+
+
+    def test_workFor_anything(self):
+        """
+        Should return default work for whatever the action is.
+        """
+        maker = WorkMaker()
+        work = maker.getWork()
+
+        thing = object()
+        task_work = maker.workFor('whatever', thing)
+        self.assertEqual(work.difficulty, task_work.difficulty)
+        self.assertEqual(work.scale, task_work.scale)
+
+
