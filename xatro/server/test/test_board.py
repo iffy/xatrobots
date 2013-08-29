@@ -181,6 +181,14 @@ class ToolTest(TestCase):
         self.assertEqual(self.successResultOf(tool.destroyed()), tool)
 
 
+    def test_optionalLifesource(self):
+        """
+        A tool can optionally know about its lifesource.
+        """
+        tool = Tool('foo', 'lifesource')
+        self.assertEqual(tool.lifesource, 'lifesource')
+
+
 
 class LifesourceTest(TestCase):
 
@@ -340,6 +348,14 @@ class LifesourceTest(TestCase):
         self.assertEqual(self.successResultOf(s.destroyed()), s)
 
 
+    def test_pairWith_another(self):
+        """
+        If you pair one thing with another thing, it should forget the old
+        pairing.
+        """
+        self.fail('write me')
+
+
 
 
 class BotTest(TestCase):
@@ -476,6 +492,7 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.shoot, None, 4)
         self.assertRaises(TooDead, b.heal, None, 3)
         self.assertRaises(TooDead, b.makeTool, None, None)
+        self.assertRaises(TooDead, b.landBot, None)
 
         self.assertEqual(b.emit.call_count, 0, str(b.emit.call_args))
 
@@ -512,6 +529,19 @@ class BotTest(TestCase):
         self.assertEqual(b2.energy_pool, [], "Should remove energy from other "
                          "bot's pool")
         b2.emit.assert_called_once_with(Event(b2, 'e.wasted', 1))
+
+
+    def test_kill_tool(self):
+        """
+        When a bot is killed, the tool it's using is destroyed.
+        """
+        b1 = Bot('foo', 'bob')
+        b1.square = MagicMock()
+
+        tool = Tool('foo')
+        b1.equip(tool)
+        b1.kill()
+        self.assertEqual(self.successResultOf(tool.destroyed()), tool)
 
 
     def test_charge(self):
@@ -759,6 +789,50 @@ class BotTest(TestCase):
         ls = contents[0]
         self.assertTrue(isinstance(ls, Lifesource), ls)
         self.assertEqual(ls.other, tool)
+        self.assertEqual(tool.lifesource, ls)
+
+
+    def test_landBot(self):
+        """
+        You can land a bot using a portal you've made.
+        """
+        square = Square(MagicMock())
+        bot1 = Bot('foo', 'bob')
+        bot1.square = MagicMock()
+        bot1.emit = create_autospec(bot1.emit)
+        ore = Ore()
+        square.addThing(ore)
+
+        bot1.makeTool(ore, 'portal')
+        ls = square.contents()[0]
+        
+        bot2 = Bot('hey', 'ho')
+
+        bot1.landBot(bot2)
+
+        self.assertEqual(bot2.square, square, "Should put them in the square")
+        self.assertEqual(bot1.tool, None, "Should unequip the portal tool")
+        self.assertEqual(ls.other, bot2, "Should pair the Lifesource with "
+                         "the new bot")
+        bot1.emit.assert_any_call(Event(bot1, 'landed', bot2))
+
+        # if the first bot is destroyed, it shouldn't affect the new bot
+        bot1.kill()
+        self.assertEqual(bot2.dead, False)
+
+
+    def test_landBot_noPortal(self):
+        """
+        You can't land a bot without a portal.
+        """
+        bot1 = Bot('foo', 'bob')
+        bot2 = Bot('foo', 'bill')
+        self.assertRaises(LackingTool, bot1.landBot, bot2)
+
+        bot1.tool = Tool('island')
+        self.assertRaises(LackingTool, bot1.landBot, bot2)
+
+
 
 
 

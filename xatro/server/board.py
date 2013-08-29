@@ -166,13 +166,16 @@ class Tool(object):
 
     @ivar kind: The kind of tool I am.  Bots care about this.
     @type kind: str
+
+    @ivar lifesource: The lifesource I came from, maybe.  It could be None.
     """
 
     dead = False
 
 
-    def __init__(self, kind):
+    def __init__(self, kind, lifesource=None):
         self.kind = kind
+        self.lifesource = lifesource
         self._destruction_broadcaster = DeferredBroadcaster()
 
 
@@ -403,6 +406,10 @@ class Bot(object):
         if self.generated_energy:
             self.generated_energy.waste()
 
+        # destroy tool
+        if self.tool:
+            self.tool.kill()
+
         # remove
         self.square.removeThing(self)
 
@@ -566,6 +573,20 @@ class Bot(object):
 
 
     @preventWhenDead
+    @requireTool('portal')
+    def landBot(self, bot):
+        """
+        Land a bot on the square with the Lifesource I made the portal tool out
+        of.
+        """
+        tool = self.tool
+        self.tool = None
+        tool.lifesource.square.addThing(bot)
+        tool.lifesource.pairWith(bot)
+        self.emit(Event(self, 'landed', bot))
+
+
+    @preventWhenDead
     def makeTool(self, ore, kind):
         """
         Make a tool out of some ore.
@@ -575,6 +596,7 @@ class Bot(object):
         self.equip(tool)
 
         ls = Lifesource(tool)
+        tool.lifesource = ls
 
         square = ore.square
         square.removeThing(ore)
