@@ -280,7 +280,8 @@ class Bot(object):
 
     def _sharedEnergyGone(self, reason, energy):
         """
-        XXX
+        Called when energy shared with me is gone (because the other bot died,
+        most likely.  Poor other bot).
         """
         # I'd rather cancel the deferred, I think
         if energy in self.energy_pool:
@@ -291,7 +292,11 @@ class Bot(object):
     @preventWhenDead
     def consumeEnergy(self, amount):
         """
-        XXX
+        Consume an C{amount} of energy.
+
+        @type amount: int
+
+        @raise NotEnoughEnergy: If I don't have that much energy.
         """
         if amount > len(self.energy_pool):
             raise NotEnoughEnergy()
@@ -305,7 +310,12 @@ class Bot(object):
     @preventWhenDead
     def shareEnergy(self, amount, bot):
         """
-        XXX
+        Share C{amount} energies with C{bot}.
+
+        @type amount: int
+        @type bot: L{Bot}
+        
+        @raise NotEnoughEnergy: If I don't have that much energy.
         """
         if amount > len(self.energy_pool):
             raise NotEnoughEnergy()
@@ -329,7 +339,7 @@ class Energy(object):
 
     def done(self):
         """
-        XXX
+        Returns a C{Deferred} that will fire when this energy has been consumed.
         """
         if self._result:
             return defer.succeed(self._result)
@@ -346,14 +356,14 @@ class Energy(object):
 
     def consume(self):
         """
-        XXX
+        Consume me, notifying everything that called L{done} previously.
         """
         self._callback('consumed')
 
 
     def waste(self):
         """
-        XXX
+        Waste me, notifying everything that called L{done} previously.
         """
         self._callback('wasted')
 
