@@ -1,12 +1,12 @@
 .PHONY: test pyflakes clean
 
-clean:
-	-rm -rf _trial_temp
-	find . -name '*.pyc' -exec rm {} \;
-
-test:
+test: clean
 	trial xatro
 	pyflakes xatro
 
 pyflakes:
 	pyflakes xatro
+
+clean:
+	-rm -rf _trial_temp
+	find . -name '*.pyc' -exec rm {} \;

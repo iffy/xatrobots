@@ -262,36 +262,27 @@ Most of the moves that bots can make require energy, which is produced by doing
 "work", similar to the work done in mining bitcoins.  Capturing squares and
 unlocking pylons also require work.
 
-A piece of work is defined by a `nonce`, `difficulty`, `scale` and `MAX_SHA`:
+A piece of work is defined by a `nonce` and a `goal`:
 
 `nonce` or `n`
     a byte string of some non-zero length
 
-`difficulty` or `d`
-    an integer (lower numbers are more difficult)
-
-`scale` or `S`
-    an integer bigger than difficulty (higher numbers are more difficult)
-
-`MAX_SHA`
-    integer largest possible result.  This is
-    `0xffffffffffffffffffffffffffffffffffffffff` in most cases.
+`goal` or `G`
+    an integer between 0 (easiest) and `MAX_SHA` (hardest).  `MAX_SHA`
+    is `0xffffffffffffffffffffffffffffffffffffffff` by default.
 
 
 The result of a piece of work is any byte string `R` which satisfies this
 equation:
 
-    int(sha1(n + R)) > (S - d) * (MAX_SHA / S)
+    int(sha1(n + R)) > G
 
 Here is a Python function that will determine if a given `R` is an acceptable
 result:
 
     from hashlib import sha1
 
-    MAX_SHA = int('f'*40, 16)
-
-    def validAnswer(nonce, difficulty, scale, result):
+    def validAnswer(nonce, goal, result):
         result = int(sha1(nonce + result).hexdigest(), 16)
-        threshold = (scale - difficulty) * (MAX_SHA / scale)
-        return result > threshold
+        return result > goal
 

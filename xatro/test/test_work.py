@@ -2,17 +2,16 @@ from twisted.trial.unittest import TestCase
 from itertools import product
 from hashlib import sha1
 
-from xatro.work import WorkMaker, Work
+from xatro.work import WorkMaker
 
 
 POOL = map(chr, xrange(0, 255))
 MAX_SHA = int('f'*40, 16)
 
 
-def validAnswer(nonce, difficulty, scale, answer):
+def validAnswer(nonce, goal, answer):
     result = int(sha1(nonce + answer).hexdigest(), 16)
-    threshold = (scale - difficulty) * (MAX_SHA / scale)
-    return result > threshold
+    return result > goal
 
 
 def _options(pool):
@@ -30,12 +29,12 @@ def _options(pool):
         i += 1
 
 
-def findResult(nonce, difficulty, scale):
+def findResult(nonce, goal):
     """
     Brute force a string that will satisfy the problem for the given args.
     """
     for o in _options(POOL):
-        if validAnswer(nonce, difficulty, scale, o):
+        if validAnswer(nonce, goal, o):
             return o
     return ''
 
@@ -44,14 +43,32 @@ def findResult(nonce, difficulty, scale):
 class WorkMakerTest(TestCase):
 
 
+    def test_makeGoal(self):
+        """
+        Given a difficulty and a scale, you can make a goal
+        """
+        maker = WorkMaker()
+        goal = maker.makeGoal(1, 1000)
+        self.assertEqual(goal, (1000 - 1) * (maker.MAX_SHA / 1000))
+
+
+    def test_makeGoal_default(self):
+        """
+        The default difficulty and scale should be used.
+        """
+        maker = WorkMaker()
+        g1 = maker.makeGoal()
+        g2 = maker.makeGoal(maker.difficulty, maker.scale)
+        self.assertEqual(g1, g2)
+
+
     def test_getWork(self):
         """
         You can get a piece of work.
         """
         maker = WorkMaker()
         work = maker.getWork()
-        self.assertEqual(work.difficulty, maker.difficulty)
-        self.assertEqual(work.scale, maker.scale)
+        self.assertEqual(work.goal, maker.makeGoal())
         self.assertNotEqual(work.nonce, None)
         self.assertNotEqual(work.nonce, '')
 
@@ -60,10 +77,9 @@ class WorkMakerTest(TestCase):
         """
         You can customize the difficulty and scale of the work requested.
         """
-        maker = WorkMaker()
-        work = maker.getWork(9, 99)
-        self.assertEqual(work.difficulty, 9)
-        self.assertEqual(work.scale, 99)
+        maker = WorkMaker(9, 99)
+        work = maker.getWork(10, 1123)
+        self.assertEqual(work.goal, maker.makeGoal(10, 1123))
 
 
     def test_getWork_differentNonce(self):
@@ -82,7 +98,7 @@ class WorkMakerTest(TestCase):
         """
         maker = WorkMaker()
         work = maker.getWork()
-        result = findResult(work.nonce, work.difficulty, work.scale)
+        result = findResult(work.nonce, work.goal)
         self.assertEqual(maker.isResult(work, result), True)
 
 
@@ -91,20 +107,7 @@ class WorkMakerTest(TestCase):
         isResult should detect bad results and return False
         """
         maker = WorkMaker()
-        work = Work(1, 100000, 'foo')
+        work = maker.getWork(1, 1000000)
         self.assertEqual(maker.isResult(work, 'hey'), False)
-
-
-    def test_workFor_anything(self):
-        """
-        Should return default work for whatever the action is.
-        """
-        maker = WorkMaker()
-        work = maker.getWork()
-
-        thing = object()
-        task_work = maker.workFor('whatever', thing)
-        self.assertEqual(work.difficulty, task_work.difficulty)
-        self.assertEqual(work.scale, task_work.scale)
 
 

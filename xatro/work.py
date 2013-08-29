@@ -3,7 +3,7 @@ from uuid import uuid4
 from hashlib import sha1
 
 
-Work = namedtuple('Work', ['difficulty', 'scale', 'nonce'])
+Work = namedtuple('Work', ['goal', 'nonce'])
 
 
 
@@ -11,14 +11,24 @@ class WorkMaker(object):
     """
     I make work and verify its completeness.
 
-    @ivar difficulty: Default difficulty if none is provided to L{getWork}.
-    @ivar scale: Default scale if none is provided to L{getWork}.
+    @ivar difficulty: Default difficulty if none is provided to L{makeGoal}.
+    @ivar scale: Default scale if none is provided to L{makeGoal}.
     """
 
-    difficulty = 10
-    scale = 10000
-
     MAX_SHA = int('f'*40, 16)
+
+    def __init__(self, difficulty=10, scale=10000):
+        self.difficulty = difficulty
+        self.scale = scale
+
+
+    def makeGoal(self, difficulty=None, scale=None):
+        """
+        Get a goal value from a difficulty and scale.
+        """
+        scale = scale or self.scale
+        difficulty = difficulty or self.difficulty
+        return (scale - difficulty) * (self.MAX_SHA / scale)
 
 
     def getWork(self, difficulty=None, scale=None):
@@ -36,7 +46,7 @@ class WorkMaker(object):
         @return: A L{Work} instance.
         """
         nonce = sha1(str(uuid4())).hexdigest()
-        return Work(difficulty or self.difficulty, scale or self.scale, nonce)
+        return Work(self.makeGoal(difficulty, scale), nonce)
 
 
     def isResult(self, work, result):
@@ -46,27 +56,13 @@ class WorkMaker(object):
 
         @return: C{True} if it's acceptable, else C{False}
         """
-        return self._validAnswer(work.nonce, work.difficulty, work.scale,
-                                 result)
+        return self._validAnswer(work.nonce, work.goal, result)
 
 
-    def _validAnswer(self, nonce, difficulty, scale, answer):
+    def _validAnswer(self, nonce, goal, answer):
         """
         Verify that the given C{answer} produces a hash greater than the
         threshold defined by C{difficulty} and C{scale}.
         """
         result = int(sha1(nonce + answer).hexdigest(), 16)
-        threshold = (scale - difficulty) * (self.MAX_SHA / scale)
-        return result > threshold
-
-
-    def workFor(self, action, obj):
-        """
-        Get some L{Work} for a specific type of action.
-
-        @param action: Name of the action.  I ignore this.
-        @param obj: Object involved with the action.  I ignore this, too.
-
-        @return: A L{Work} instance.
-        """
-        return self.getWork()
+        return result > goal
