@@ -41,6 +41,12 @@ class IKillable(Interface):
         """
 
 
+    def destroyed():
+        """
+        Return a deferred which fires when I'm killed.
+        """
+
+
 class ILocatable(Interface):
 
 

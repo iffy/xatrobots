@@ -178,6 +178,7 @@ class ToolTest(TestCase):
         tool.kill()
         self.assertEqual(self.successResultOf(d1), tool)
         self.assertEqual(self.successResultOf(d2), tool)
+        self.assertEqual(self.successResultOf(tool.destroyed()), tool)
 
 
 
@@ -325,6 +326,20 @@ class LifesourceTest(TestCase):
         s.kill.assert_called_once_with()
 
 
+    def test_destroyed(self):
+        """
+        Should return a Deferred which fires when killed.
+        """
+        s = Lifesource()
+        s.square = MagicMock()
+        d1 = s.destroyed()
+        d2 = s.destroyed()
+        s.kill()
+        self.assertEqual(self.successResultOf(d1), s)
+        self.assertEqual(self.successResultOf(d2), s)
+        self.assertEqual(self.successResultOf(s.destroyed()), s)
+
+
 
 
 class BotTest(TestCase):
@@ -463,6 +478,20 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.makeTool, None, None)
 
         self.assertEqual(b.emit.call_count, 0, str(b.emit.call_args))
+
+
+    def test_destroyed(self):
+        """
+        Should return a Deferred which fires when killed.
+        """
+        bot = Bot('foo', 'bob')
+        bot.square = MagicMock()
+        d1 = bot.destroyed()
+        d2 = bot.destroyed()
+        bot.kill()
+        self.assertEqual(self.successResultOf(d1), bot)
+        self.assertEqual(self.successResultOf(d2), bot)
+        self.assertEqual(self.successResultOf(bot.destroyed()), bot)
 
 
     def test_kill_energy(self):

@@ -31,6 +31,34 @@ def preventWhenDead(f):
 
 
 
+class DeferredBroadcaster(object):
+    """
+    XXX
+    """
+
+    has_result = False
+    result = None
+
+    def __init__(self):
+        self.pending = []
+
+
+    def get(self):
+        if self.has_result:
+            return defer.succeed(self.result)
+        d = defer.Deferred()
+        self.pending.append(d)
+        return d
+
+
+    def callback(self, result):
+        self.has_result = True
+        self.result = result
+        for d in self.pending:
+            d.callback(result)
+
+
+
 class Square(object):
     """
     I am a square on the gameboard.
@@ -140,27 +168,26 @@ class Tool(object):
     @type kind: str
     """
 
+    dead = False
+
 
     def __init__(self, kind):
         self.kind = kind
-        self._pending = []
+        self._destruction_broadcaster = DeferredBroadcaster()
 
 
     def destroyed(self):
         """
         Return a deferred which will fire when I'm destroyed.
         """
-        d = defer.Deferred()
-        self._pending.append(d)
-        return d
+        return self._destruction_broadcaster.get()
 
 
     def kill(self):
         """
         Kill me, notifying things that care.
         """
-        for d in self._pending:
-            d.callback(self)
+        self._destruction_broadcaster.callback(self)
 
 
 
@@ -181,6 +208,7 @@ class Lifesource(object):
 
     def __init__(self, other=None):
         self.id = str(uuid4())
+        self._destruction_broadcaster = DeferredBroadcaster()
         if other:
             self.pairWith(other)
 
@@ -248,6 +276,16 @@ class Lifesource(object):
         square.removeThing(self)
         square.addThing(Ore())
 
+        # notify others
+        self._destruction_broadcaster.callback(self)
+
+
+    def destroyed(self):
+        """
+        Return a deferred which will fire when I'm destroyed.
+        """
+        return self._destruction_broadcaster.get()
+
 
 
 def requireTool(required_tool):
@@ -302,6 +340,7 @@ class Bot(object):
         self.energy_pool = []
         self.generated_energy = None
         self.event_receiver = event_receiver or (lambda x:None)
+        self._destruction_broadcaster = DeferredBroadcaster()
 
 
     def eventReceived(self, event):
@@ -366,6 +405,16 @@ class Bot(object):
 
         # remove
         self.square.removeThing(self)
+
+        # notify others
+        self._destruction_broadcaster.callback(self)
+
+
+    def destroyed(self):
+        """
+        Return a Deferred which fires when I've been destroyed.
+        """
+        return self._destruction_broadcaster.get()
 
 
     def hitpoints(self):
