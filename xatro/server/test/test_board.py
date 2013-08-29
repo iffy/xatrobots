@@ -189,7 +189,7 @@ class LifesourceTest(TestCase):
         Emitting when there's a square should call the square's eventReceived
         method.
         """
-        s = Lifesource(None)
+        s = Lifesource(MagicMock())
         s.square = MagicMock()
         s.emit('foo')
         s.square.eventReceived.assert_called_once_with('foo')
@@ -199,23 +199,23 @@ class LifesourceTest(TestCase):
         """
         Emitting when there's no square should be a nop
         """
-        s = Lifesource(None)
+        s = Lifesource(MagicMock())
         s.emit('foo')
 
 
     def test_ILocatable(self):
-        verifyObject(ILocatable, Lifesource(None))
+        verifyObject(ILocatable, Lifesource(MagicMock()))
 
 
     def test_IKillable(self):
-        verifyObject(IKillable, Lifesource(None))
+        verifyObject(IKillable, Lifesource(MagicMock()))
 
 
     def test_hitpoints(self):
         """
         Should have hitpoints
         """
-        s = Lifesource(None)
+        s = Lifesource(MagicMock())
         self.assertTrue(s.hitpoints() > 0)
 
 
@@ -223,7 +223,7 @@ class LifesourceTest(TestCase):
         """
         You can damage a lifesource
         """
-        s = Lifesource(None)
+        s = Lifesource(MagicMock())
         s.emit = create_autospec(s.emit)
         hp = s.hitpoints()
 
@@ -236,7 +236,7 @@ class LifesourceTest(TestCase):
         """
         Excessive damage will kill a Lifesource
         """
-        s = Lifesource(None)
+        s = Lifesource(MagicMock())
         s.kill = create_autospec(s.kill)
 
         s.damage(s.hitpoints()+2)
@@ -248,7 +248,7 @@ class LifesourceTest(TestCase):
         """
         You can restore health of a lifesource
         """
-        s = Lifesource(None)
+        s = Lifesource(MagicMock())
         s.emit = create_autospec(s.emit)
         hp = s.hitpoints()
 
@@ -309,6 +309,18 @@ class LifesourceTest(TestCase):
         s = Lifesource(obj)
         s.square = MagicMock()
         s.kill()
+
+
+    def test_noticeDestruction(self):
+        """
+        If the other thing I'm a support for is destroyed, I should notice.
+        """
+        tool = Tool('gummy bear')
+        s = Lifesource(tool)
+        s.kill = create_autospec(s.kill)
+        tool.kill()
+        s.kill.assert_called_once_with()
+
 
 
 
@@ -441,6 +453,7 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.receiveEnergies, [])
         self.assertRaises(TooDead, b.consumeEnergy, 1)
         self.assertRaises(TooDead, b.shareEnergy, 2, None)
+        self.assertRaises(TooDead, b.equip, Tool('foo'))
 
 
     def test_kill_energy(self):
@@ -591,6 +604,35 @@ class BotTest(TestCase):
 
         bot2 = Bot('foo', 'jim')
         self.assertRaises(NotEnoughEnergy, bot1.shareEnergy, 2, bot2)
+
+
+    def test_equip(self):
+        """
+        You can equip a tool.
+        """
+        bot = Bot('foo', 'bob')
+        bot.emit = create_autospec(bot.emit)
+
+        tool = Tool('car')
+        bot.equip(tool)
+        self.assertEqual(bot.tool, tool)
+        bot.emit.assert_called_once_with(Event(bot, 'equipped', tool))
+
+
+    def test_toolDestroyed(self):
+        """
+        When a tool is destroyed, it is unequipped from the bot.
+        """
+        bot = Bot('foo', 'bob')
+        bot.emit = create_autospec(bot.emit)
+
+        tool = Tool('balloon')
+        bot.equip(tool)
+        bot.emit.reset_mock()
+
+        tool.kill()
+        self.assertEqual(bot.tool, None, "Should unequip")
+        bot.emit.assert_called_once_with(Event(bot, 'unequipped', None))
 
 
 

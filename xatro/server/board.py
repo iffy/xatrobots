@@ -180,6 +180,7 @@ class Lifesource(object):
     def __init__(self, other):
         self.id = str(uuid4())
         self.other = other
+        self.other.destroyed().addCallback(lambda x:self.kill())
 
 
     def emit(self, event):
@@ -439,6 +440,25 @@ class Bot(object):
         self.energy_pool = self.energy_pool[amount:]
         self.emit(Event(self, 'e.shared', bot))
         bot.receiveEnergies(energies)
+
+
+    @preventWhenDead
+    def equip(self, tool):
+        """
+        Equip this bot with a tool.
+        """
+        self.tool = tool
+        self.emit(Event(self, 'equipped', tool))
+
+        tool.destroyed().addCallback(self._toolDestroyed)
+
+
+    def _toolDestroyed(self, tool):
+        """
+        Called when a tool is destroyed.
+        """
+        self.tool = None
+        self.emit(Event(self, 'unequipped', None))
 
 
 
