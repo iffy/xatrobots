@@ -1,4 +1,5 @@
 from twisted.trial.unittest import TestCase
+from twisted.internet import defer
 from zope.interface.verify import verifyObject
 
 from mock import MagicMock, create_autospec
@@ -6,6 +7,7 @@ from mock import MagicMock, create_autospec
 from xatro.server.interface import IEventReceiver, IKillable
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Material, Bot, Energy
+from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 
 
 class SquareTest(TestCase):
@@ -238,9 +240,22 @@ class BotTest(TestCase):
 
     def test_kill_energy(self):
         """
-        When a bot is killed, all energy they shared should be removed.
+        When a bot is killed, any energy they shared should be removed.
         """
-        self.fail('write me')
+        b1 = Bot('foo', 'bob')
+        b1.square = MagicMock()
+        b2 = Bot('foo', 'jim')
+        b2.emit = create_autospec(b2.emit)
+
+        b1.charge()
+        b1.shareEnergy(1, b2)
+        b2.emit.reset_mock()
+
+        b1.kill()
+        self.assertEqual(b1.generated_energy, None)
+        self.assertEqual(b2.energy_pool, [], "Should remove energy from other "
+                         "bot's pool")
+        b2.emit.assert_called_once_with(Event(b2, 'e.wasted', 1))
 
 
     def test_charge(self):
@@ -254,12 +269,123 @@ class BotTest(TestCase):
         b.charge()
         self.assertTrue(isinstance(b.generated_energy, Energy),
                         "Should set generated_energy")
-        self.assertEqual(b.generated_energy.bot, b,
-                         "Energy should know about bot")
-        b.emit.assert_called_once_with(Event(b, 'charged', None))
+        self.assertEqual(b.energy_pool, [b.generated_energy])
+        b.emit.assert_any_call(Event(b, 'charged', None))
 
 
+    def test_charge_tooSoon(self):
+        """
+        It is an error to try and charge when there's still a generated_energy.
+        """
+        b = Bot('foo', 'bob')
+        b.charge()
+        self.assertRaises(EnergyNotConsumedYet, b.charge)
+
+
+    def test_charge_energyConsumed(self):
+        """
+        After energy is consumed, it is okay to charge more.
+        """
+        b = Bot('foo', 'bob')
+        b.charge()
+
+        # bot consumes it
+        b.consumeEnergy(1)
+        b.charge()
+
+        # someone else consumes it
+        b.generated_energy.consume()
+        b.charge()
+
+
+    def test_canCharge(self):
+        """
+        An uncharged bot can charge.
+        """
+        b = Bot('foo', 'bob')
+        self.assertEqual(b.canCharge().called, True)
+
+
+    def test_canCharge_waiting(self):
+        """
+        A charged bot can't charge until the charge has been used.
+        """
+        b = Bot('foo', 'bob')
+        b.charge()
+        d = b.canCharge()
+        self.assertEqual(d.called, False)
+        b.consumeEnergy(1)
+        self.assertEqual(d.called, True)
+
+
+    def test_receiveEnergy(self):
+        """
+        A bot can receive energy.
+        """
+        b = Bot('foo', 'bob')
+        b.emit = create_autospec(b.emit)
+        energy = Energy()
+        b.receiveEnergy([energy])
+        self.assertIn(energy, b.energy_pool, "Bot should know it has it")
+        b.emit.assert_called_once_with(Event(b, 'e.received', 1))
+
+
+    def test_consumeEnergy(self):
+        """
+        A bot can consume energy in its pool, which will cause the energy to be
+        removed from the pool, and an event to be emitted.
+        """
+        b = Bot('foo', 'bob')
+        b.emit = create_autospec(b.emit)
+        energy = Energy()
+        b.receiveEnergy([energy])
+        b.emit.reset_mock()
         
+        b.consumeEnergy(1)
+        self.assertEqual(self.successResultOf(energy.done()), 'consumed')
+        self.assertEqual(b.energy_pool, [])
+        b.emit.assert_called_once_with(Event(b, 'e.consumed', 1))
+
+
+    def test_consumeEnergy_notEnough(self):
+        """
+        An error is raised if you try to consume energy you don't have.
+        """
+        b = Bot('foo', 'bob')
+        energy = Energy()
+        b.receiveEnergy([energy])
+
+        self.assertRaises(NotEnoughEnergy, b.consumeEnergy, 2)
+        self.assertEqual(len(b.energy_pool), 1, "Should not remove it")
+
+
+    def test_shareEnergy(self):
+        """
+        A bot can share energy with other bots.
+        """
+        bot1 = Bot('foo', 'bob')
+        bot1.charge()
+        bot1.emit = create_autospec(bot1.emit)
+        e = bot1.generated_energy
+
+        bot2 = Bot('foo', 'hey')
+        bot2.receiveEnergy = create_autospec(bot2.receiveEnergy)
+
+        bot1.shareEnergy(1, bot2)
+        bot2.receiveEnergy.assert_called_once_with([e])
+        bot1.emit.assert_any_call(Event(bot1, 'e.shared', bot2))
+        self.assertEqual(bot1.energy_pool, [], "Should remove from bot1")
+
+
+    def test_shareEnergy_notEnough(self):
+        """
+        An error is raised if you try to share energy that you don't have.
+        """
+        bot1 = Bot('foo', 'bob')
+        bot1.charge()
+
+        bot2 = Bot('foo', 'jim')
+        self.assertRaises(NotEnoughEnergy, bot1.shareEnergy, 2, bot2)
 
 
 
@@ -270,8 +396,29 @@ class EnergyTest(TestCase):
         """
         Should know the bot who made me.
         """
-        bot = object()
-        e = Energy(bot)
-        self.assertEqual(e.bot, bot)
+        e = Energy()
+        self.assertTrue(isinstance(e.done(), defer.Deferred))
+
+
+    def test_consume(self):
+        """
+        Consuming energy will cause the callback to be called with 'consume'
+        """
+        e = Energy()
+        d = e.done()
+        e.consume()
+        self.assertEqual(self.successResultOf(e.done()), 'consumed')
+        self.assertEqual(self.successResultOf(d), 'consumed')
+
+
+    def test_waste(self):
+        """
+        Wasting energy will cause the callback to be called with 'waste'
+        """
+        e = Energy()
+        d = e.done()
+        e.waste()
+        self.assertEqual(self.successResultOf(e.done()), 'wasted')
+        self.assertEqual(self.successResultOf(d), 'wasted')
 
 

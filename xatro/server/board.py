@@ -2,12 +2,15 @@
 Board and Square and such.
 """
 
+from twisted.internet import defer
 from zope.interface import implements
 from xatro.server.interface import IEventReceiver, IKillable
 from xatro.server.event import Event
 
 from uuid import uuid4
 
+class EnergyNotConsumedYet(Exception): pass
+class NotEnoughEnergy(Exception): pass
 
 
 class Square(object):
@@ -178,8 +181,15 @@ class Bot(object):
         """
         XXX
         """
+        # kill
         self.health -= self.health
         self.emit(Event(self, 'died', None))
+
+        # waste energy
+        if self.generated_energy:
+            self.generated_energy.waste()
+
+        # remove
         self.square.removeBot(self)
 
 
@@ -191,19 +201,120 @@ class Bot(object):
         """
         XXX
         """
-        self.generated_energy = Energy(self)
+        if self.generated_energy:
+            raise EnergyNotConsumedYet()
+
+        self.generated_energy = Energy()
         self.emit(Event(self, 'charged', None))
+
+        self.receiveEnergy([self.generated_energy])
+        self.generated_energy.done().addCallback(self._myEnergyConsumed)
+
+
+    def canCharge(self):
+        """
+        XXX
+        """
+        if not self.generated_energy:
+            return defer.succeed(True)
+        return self.generated_energy.done()
+
+
+    def _myEnergyConsumed(self, result):
+        """
+        XXX
+        """
+        self.generated_energy = None
+
+
+    def receiveEnergy(self, energies):
+        """
+        XXX
+
+        @param energies: A list of L{Energy} instances.
+        """
+        self.energy_pool.extend(energies)
+        for e in energies:
+            e.done().addCallback(self._sharedEnergyGone, e)
+        self.emit(Event(self, 'e.received', 1))
+
+
+    def _sharedEnergyGone(self, reason, energy):
+        """
+        XXX
+        """
+        # I'd rather cancel the deferred, I think
+        if energy in self.energy_pool:
+            self.energy_pool.remove(energy)
+            self.emit(Event(self, 'e.wasted', 1))
+
+
+    def consumeEnergy(self, amount):
+        """
+        XXX
+        """
+        if amount > len(self.energy_pool):
+            raise NotEnoughEnergy()
+
+        for i in xrange(amount):
+            e = self.energy_pool.pop()
+            e.consume()
+        self.emit(Event(self, 'e.consumed', amount))
+
+
+    def shareEnergy(self, amount, bot):
+        """
+        XXX
+        """
+        if amount > len(self.energy_pool):
+            raise NotEnoughEnergy()
+
+        energies = self.energy_pool[:amount]
+        self.energy_pool = self.energy_pool[amount:]
+        self.emit(Event(self, 'e.shared', bot))
+        bot.receiveEnergy(energies)
 
 
 
 class Energy(object):
     """
     I am energy.  ooowwaaoooohhhh
-
-    @ivar bot: The L{Bot} that produced me.
     """
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self):
+        self._dones = []
+        self._result = None
+
+
+    def done(self):
+        """
+        XXX
+        """
+        if self._result:
+            return defer.succeed(self._result)
+        d = defer.Deferred()
+        self._dones.append(d)
+        return d
+
+
+    def _callback(self, result):
+        self._result = result
+        for d in self._dones:
+            d.callback(result)
+
+
+    def consume(self):
+        """
+        XXX
+        """
+        self._callback('consumed')
+
+
+    def waste(self):
+        """
+        XXX
+        """
+        self._callback('wasted')
+
 
 
