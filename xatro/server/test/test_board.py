@@ -7,6 +7,7 @@ from mock import MagicMock, create_autospec
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
+from xatro.server.board import Tool
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 from xatro.server.board import TooDead
 
@@ -156,6 +157,30 @@ class OreTest(TestCase):
 
 
 
+class ToolTest(TestCase):
+
+
+    def test_attributes(self):
+        """
+        All tools have a type/kind.
+        """
+        tool = Tool('foo')
+        self.assertEqual(tool.kind, 'foo')
+
+
+    def test_destroyed(self):
+        """
+        Should return a Deferred which fires when killed.
+        """
+        tool = Tool('foo')
+        d1 = tool.destroyed()
+        d2 = tool.destroyed()
+        tool.kill()
+        self.assertEqual(self.successResultOf(d1), tool)
+        self.assertEqual(self.successResultOf(d2), tool)
+
+
+
 class LifesourceTest(TestCase):
 
 
@@ -292,7 +317,7 @@ class BotTest(TestCase):
 
     def test_attributes(self):
         """
-        Should have health, energy, a name, equipment, a portal, a square,
+        Should have health, energy, a name, tool, a portal, a square,
         a team.
         """
         b = Bot('foo', 'bob')
@@ -301,7 +326,7 @@ class BotTest(TestCase):
         self.assertEqual(b.generated_energy, None)
         self.assertEqual(b.name, 'bob')
         self.assertEqual(b.team, 'foo')
-        self.assertEqual(b.equipment, None)
+        self.assertEqual(b.tool, None)
         self.assertEqual(b.portal, None)
         self.assertEqual(b.square, None)
         self.assertNotEqual(b.id, None)

@@ -131,6 +131,38 @@ class Ore(object):
 
 
 
+class Tool(object):
+    """
+    I am a tool that a bot can use.  I come from ore and have a lifesource.
+
+    @ivar kind: The kind of tool I am.  Bots care about this.
+    @type kind: str
+    """
+
+
+    def __init__(self, kind):
+        self.kind = kind
+        self._pending = []
+
+
+    def destroyed(self):
+        """
+        Return a deferred which will fire when I'm destroyed.
+        """
+        d = defer.Deferred()
+        self._pending.append(d)
+        return d
+
+
+    def kill(self):
+        """
+        Kill me, notifying things that care.
+        """
+        for d in self._pending:
+            d.callback(self)
+
+
+
 class Lifesource(object):
     """
     I am a lifesource for something.  If I die, the thing I'm tied to dies.
@@ -213,7 +245,7 @@ class Bot(object):
     @ivar team: Team name
     @ivar name: Bot name
     @ivar health: Amount of health left. 0 = dead.
-    @ivar equipment: Any piece of equipment I have.
+    @ivar tool: A tool I have.
     @ivar portal: The portal where I landed.
     @ivar square: The square I'm in right now.
 
@@ -230,7 +262,7 @@ class Bot(object):
     name = None
     health = 10
     dead = False
-    equipment = None
+    tool = None
     portal = None
     square = None
 
