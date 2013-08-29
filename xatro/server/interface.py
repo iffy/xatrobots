@@ -32,10 +32,16 @@ class IKillable(Interface):
         """
 
 
+    def kill():
+        """
+        Kill a thing dead.
+        """
+
+
 class ILocatable(Interface):
 
 
     id = Attribute("Unique string ID of thing.")
-    
+
     square = Attribute("Square thing is in")
 
