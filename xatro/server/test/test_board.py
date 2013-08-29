@@ -455,6 +455,7 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.shareEnergy, 2, None)
         self.assertRaises(TooDead, b.equip, Tool('foo'))
         self.assertRaises(TooDead, b.shoot, None, 4)
+        self.assertRaises(TooDead, b.heal, None, 3)
 
 
     def test_kill_energy(self):
@@ -663,7 +664,40 @@ class BotTest(TestCase):
         self.assertRaises(LackingTool, bot1.shoot, bot2, 2)
 
         bot1.tool = Tool('cat')
-        self.assertRaises(LackingTool, bot1.shoot, bot2, 2)        
+        self.assertRaises(LackingTool, bot1.shoot, bot2, 2)
+
+
+    def test_heal(self):
+        """
+        You can heal another thing with a repair kit
+        """
+        bot1 = Bot('foo', 'bob')
+        bot1.emit = create_autospec(bot1.emit)
+        bot2 = Bot('foo', 'lucky')
+
+        bot1.equip(Tool('repair kit'))
+        bot1.emit.reset_mock()
+
+        bot2.damage(5)
+        hp = bot2.hitpoints()
+
+        bot1.heal(bot2, 3)
+        self.assertEqual(bot2.hitpoints(), hp+3)
+        bot1.emit.assert_called_once_with(Event(bot1, 'healed', bot2))
+
+
+    def test_heal_noRepairKit(self):
+        """
+        You can't repair without a repair kit, nor can you do it with a jar of
+        mayonnaise.
+        """
+        bot1 = Bot('foo', 'bob')
+        bot2 = Bot('foo', 'bill')
+        self.assertRaises(LackingTool, bot1.heal, bot2, 2)
+
+        bot1.tool = Tool('jar of mayonnaise')
+        self.assertRaises(LackingTool, bot1.heal, bot2, 2)
+
 
 
 

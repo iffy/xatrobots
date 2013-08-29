@@ -492,6 +492,20 @@ class Bot(object):
         what.damage(damage)
 
 
+    @preventWhenDead
+    @requireTool('repair kit')
+    def heal(self, what, amount):
+        """
+        Heal something.
+
+        @param what: An L{IKillable}
+        @param amount: Amount of health to give.
+        @type amount: int
+        """
+        self.emit(Event(self, 'healed', what))
+        what.revive(amount)
+
+
 
 class Energy(object):
     """
