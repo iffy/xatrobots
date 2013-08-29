@@ -4,7 +4,7 @@ Board and Square and such.
 
 from twisted.internet import defer
 from zope.interface import implements
-from xatro.server.interface import IEventReceiver, IKillable
+from xatro.server.interface import IEventReceiver, IKillable, ILocatable
 from xatro.server.event import Event
 
 from uuid import uuid4
@@ -90,23 +90,64 @@ class Pylon(object):
 
 
 
-class Material(object):
+class Ore(object):
     """
-    I am a material.
-
-    @ivar health: If an integer, the current health of the material.
-    @ivar current_use: C{None} if not in use, otherwise this is the object
-        I've been provisioned into.
+    I am ore that has yet to be made into something useful.
+    
     @ivar square: The square I'm in right now.
+    @ivar id: My unique id.
     """
+
+    implements(ILocatable)
 
     square = None
-    health = None
-    current_use = None
-
 
     def __init__(self):
         self.id = str(uuid4())
+
+
+
+class Lifesource(object):
+    """
+    I am a lifesource for something.  If I die, the thing I'm tied to dies.
+    """
+
+    implements(ILocatable, IKillable)
+
+    square = None
+    _hitpoints = 10
+
+
+    def __init__(self, other):
+        self.id = str(uuid4())
+
+
+    def emit(self, event):
+        """
+        XXX
+        """
+        if self.square:
+            self.square.eventReceived(event)
+
+
+    def hitpoints(self):
+        return self._hitpoints
+
+
+    def damage(self, amount):
+        """
+        XXX
+        """
+        self._hitpoints -= amount
+        self.emit(Event(self, 'hp', -amount))
+
+
+    def revive(self, amount):
+        """
+        XXX
+        """
+        self._hitpoints += amount
+        self.emit(Event(self, 'hp', amount))
 
 
 
@@ -141,7 +182,7 @@ class Bot(object):
         won't be found in my C{energy_pool}.
     """
 
-    implements(IEventReceiver, IKillable)
+    implements(IEventReceiver, IKillable, ILocatable)
 
     team = None
     name = None
@@ -188,7 +229,7 @@ class Bot(object):
         """
         amount = min(amount, self.health)
         self.health -= amount
-        self.emit(Event(self, 'health', -amount))
+        self.emit(Event(self, 'hp', -amount))
 
         if self.health <= 0:
             self.kill()
@@ -202,7 +243,7 @@ class Bot(object):
         @type amount: int
         """
         self.health += amount
-        self.emit(Event(self, 'health', amount))
+        self.emit(Event(self, 'hp', amount))
 
 
     @preventWhenDead

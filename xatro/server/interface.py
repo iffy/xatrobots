@@ -1,4 +1,4 @@
-from zope.interface import Interface
+from zope.interface import Interface, Attribute
 
 
 class IEventReceiver(Interface):
@@ -32,7 +32,10 @@ class IKillable(Interface):
         """
 
 
-    def kill():
-        """
-        Kill this thing dead.  (For disconnections, mostly)
-        """
+class ILocatable(Interface):
+
+
+    id = Attribute("Unique string ID of thing.")
+    
+    square = Attribute("Square thing is in")
+

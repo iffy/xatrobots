@@ -4,9 +4,9 @@ from zope.interface.verify import verifyObject
 
 from mock import MagicMock, create_autospec
 
-from xatro.server.interface import IEventReceiver, IKillable
+from xatro.server.interface import IEventReceiver, IKillable, ILocatable
 from xatro.server.event import Event
-from xatro.server.board import Square, Pylon, Material, Bot, Energy
+from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 from xatro.server.board import YouAreTooDead
 
@@ -16,7 +16,7 @@ class SquareTest(TestCase):
 
     def test_attributes(self):
         """
-        A Square should have bots, materials, a pylon and a board.
+        A Square should have bots, things, a pylon and a board.
         """
         q = Square('board')
         self.assertEqual(q.board, 'board')
@@ -119,18 +119,79 @@ class PylonTest(TestCase):
 
 
 
-class MaterialTest(TestCase):
+class OreTest(TestCase):
 
 
-    def test_attributes(self):
+    def test_ILocatable(self):
+        verifyObject(ILocatable, Ore())
+
+
+
+class LifesourceTest(TestCase):
+
+
+    def test_emit(self):
         """
-        Should have a use and a health
+        Emitting when there's a square should call the square's eventReceived
+        method.
         """
-        m = Material()
-        self.assertEqual(m.square, None)
-        self.assertEqual(m.health, None)
-        self.assertEqual(m.current_use, None)
-        self.assertNotEqual(m.id, None)
+        s = Lifesource(None)
+        s.square = MagicMock()
+        s.emit('foo')
+        s.square.eventReceived.assert_called_once_with('foo')
+
+
+    def test_emit_noSquare(self):
+        """
+        Emitting when there's no square should be a nop
+        """
+        s = Lifesource(None)
+        s.emit('foo')
+
+
+    def test_ILocatable(self):
+        verifyObject(ILocatable, Lifesource(None))
+
+
+    def test_IKillable(self):
+        verifyObject(IKillable, Lifesource(None))
+
+
+    def test_hitpoints(self):
+        """
+        Should have hitpoints
+        """
+        s = Lifesource(None)
+        self.assertTrue(s.hitpoints() > 0)
+
+
+    def test_damage(self):
+        """
+        You can damage a lifesource
+        """
+        s = Lifesource(None)
+        s.emit = create_autospec(s.emit)
+        hp = s.hitpoints()
+
+        s.damage(2)
+        self.assertEqual(s.hitpoints(), hp-2)
+        s.emit.assert_called_once_with(Event(s, 'hp', -2))
+
+
+    def test_revive(self):
+        """
+        You can restore health of a lifesource
+        """
+        s = Lifesource(None)
+        s.emit = create_autospec(s.emit)
+        hp = s.hitpoints()
+
+        s.damage(3)
+        s.emit.reset_mock()
+
+        s.revive(2)
+        self.assertEqual(s.hitpoints(), hp-1)
+        s.emit.assert_called_once_with(Event(s, 'hp', 2))
 
 
 
@@ -152,6 +213,10 @@ class BotTest(TestCase):
         self.assertEqual(b.portal, None)
         self.assertEqual(b.square, None)
         self.assertNotEqual(b.id, None)
+
+
+    def test_ILocatable(self):
+        verifyObject(ILocatable, Bot(None, None))
 
 
     def test_IEventReceiver(self):
@@ -207,7 +272,7 @@ class BotTest(TestCase):
 
         b.damage(3)
         self.assertEqual(b.hitpoints(), 7)
-        b.emit.assert_called_once_with(Event(b, 'health', -3))
+        b.emit.assert_called_once_with(Event(b, 'hp', -3))
 
 
     def test_damageToDeath(self):
@@ -234,7 +299,7 @@ class BotTest(TestCase):
 
         b.revive(2)
         self.assertEqual(b.hitpoints(), 8)
-        b.emit.assert_called_once_with(Event(b, 'health', 2))
+        b.emit.assert_called_once_with(Event(b, 'hp', 2))
 
 
     def test_kill(self):
