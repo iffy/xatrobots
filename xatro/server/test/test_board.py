@@ -256,7 +256,7 @@ class BotTest(TestCase):
         self.assertRaises(YouAreTooDead, b.revive, 2)
         self.assertRaises(YouAreTooDead, b.kill)
         self.assertRaises(YouAreTooDead, b.charge)
-        self.assertRaises(YouAreTooDead, b.receiveEnergy, [])
+        self.assertRaises(YouAreTooDead, b.receiveEnergies, [])
         self.assertRaises(YouAreTooDead, b.consumeEnergy, 1)
         self.assertRaises(YouAreTooDead, b.shareEnergy, 2, None)
 
@@ -341,14 +341,14 @@ class BotTest(TestCase):
         self.assertEqual(d.called, True)
 
 
-    def test_receiveEnergy(self):
+    def test_receiveEnergies(self):
         """
         A bot can receive energy.
         """
         b = Bot('foo', 'bob')
         b.emit = create_autospec(b.emit)
         energy = Energy()
-        b.receiveEnergy([energy])
+        b.receiveEnergies([energy])
         self.assertIn(energy, b.energy_pool, "Bot should know it has it")
         b.emit.assert_called_once_with(Event(b, 'e.received', 1))
 
@@ -361,7 +361,7 @@ class BotTest(TestCase):
         b = Bot('foo', 'bob')
         b.emit = create_autospec(b.emit)
         energy = Energy()
-        b.receiveEnergy([energy])
+        b.receiveEnergies([energy])
         b.emit.reset_mock()
         
         b.consumeEnergy(1)
@@ -376,7 +376,7 @@ class BotTest(TestCase):
         """
         b = Bot('foo', 'bob')
         energy = Energy()
-        b.receiveEnergy([energy])
+        b.receiveEnergies([energy])
 
         self.assertRaises(NotEnoughEnergy, b.consumeEnergy, 2)
         self.assertEqual(len(b.energy_pool), 1, "Should not remove it")
@@ -392,10 +392,10 @@ class BotTest(TestCase):
         e = bot1.generated_energy
 
         bot2 = Bot('foo', 'hey')
-        bot2.receiveEnergy = create_autospec(bot2.receiveEnergy)
+        bot2.receiveEnergies = create_autospec(bot2.receiveEnergies)
 
         bot1.shareEnergy(1, bot2)
-        bot2.receiveEnergy.assert_called_once_with([e])
+        bot2.receiveEnergies.assert_called_once_with([e])
         bot1.emit.assert_any_call(Event(bot1, 'e.shared', bot2))
         self.assertEqual(bot1.energy_pool, [], "Should remove from bot1")
 

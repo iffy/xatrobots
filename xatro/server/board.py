@@ -232,7 +232,12 @@ class Bot(object):
     @preventWhenDead
     def charge(self):
         """
-        XXX
+        Use my charger to generate one L{Energy}.  There can only exist one of
+        my L{Energy} at a time.  You must consume previously generated
+        L{Energy} before generating more.
+
+        @raise EnergyNotConsumedYet: If my previously charged L{Energy} has not
+            yet been consumed.  
         """
         if self.generated_energy:
             raise EnergyNotConsumedYet()
@@ -240,13 +245,13 @@ class Bot(object):
         self.generated_energy = Energy()
         self.emit(Event(self, 'charged', None))
 
-        self.receiveEnergy([self.generated_energy])
+        self.receiveEnergies([self.generated_energy])
         self.generated_energy.done().addCallback(self._myEnergyConsumed)
 
 
     def canCharge(self):
         """
-        XXX
+        Return a C{Deferred} which will fire when I'm allowed to charge again.
         """
         if not self.generated_energy:
             return defer.succeed(True)
@@ -255,15 +260,15 @@ class Bot(object):
 
     def _myEnergyConsumed(self, result):
         """
-        XXX
+        Called when an energy I produced was consumed or wasted in some way.
         """
         self.generated_energy = None
 
 
     @preventWhenDead
-    def receiveEnergy(self, energies):
+    def receiveEnergies(self, energies):
         """
-        XXX
+        Receive some energies from another bot.
 
         @param energies: A list of L{Energy} instances.
         """
@@ -308,7 +313,7 @@ class Bot(object):
         energies = self.energy_pool[:amount]
         self.energy_pool = self.energy_pool[amount:]
         self.emit(Event(self, 'e.shared', bot))
-        bot.receiveEnergy(energies)
+        bot.receiveEnergies(energies)
 
 
 
