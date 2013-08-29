@@ -9,8 +9,11 @@ from xatro.server.event import Event
 
 from uuid import uuid4
 
+from functools import wraps
+
 class EnergyNotConsumedYet(Exception): pass
 class NotEnoughEnergy(Exception): pass
+class YouAreTooDead(Exception): pass
 
 
 class Square(object):
@@ -107,6 +110,19 @@ class Material(object):
 
 
 
+def preventWhenDead(f):
+    """
+    Decorator for preventing calls when too dead.
+    """
+    @wraps(f)
+    def wrapped(instance, *args, **kwargs):
+        if instance._dead:
+            raise YouAreTooDead()
+        return f(instance, *args, **kwargs)
+    return wrapped
+
+
+
 class Bot(object):
     """
     I am a bot in play.
@@ -130,6 +146,7 @@ class Bot(object):
     team = None
     name = None
     health = 10
+    _dead = False
     equipment = None
     portal = None
     square = None
@@ -146,14 +163,15 @@ class Bot(object):
 
     def eventReceived(self, event):
         """
-        XXX
+        Called when I receive an event (typically from the L{Square}).  This
+        event is passed on to my C{event_receiver}.
         """
         self.event_receiver(event)
 
 
     def emit(self, event):
         """
-        XXX
+        Emit an event to the square I'm on.
         """
         if self.square:
             self.square.eventReceived(event)
@@ -161,28 +179,42 @@ class Bot(object):
             self.eventReceived(event)
 
 
+    @preventWhenDead
     def damage(self, amount):
         """
-        XXX
+        Damage me by C{amount} hitpoints.
+
+        @type amount: int
         """
+        amount = min(amount, self.health)
         self.health -= amount
         self.emit(Event(self, 'health', -amount))
 
+        if self.health <= 0:
+            self.kill()
 
+
+    @preventWhenDead
     def revive(self, amount):
         """
-        XXX
+        Restore my hitpoints by C{amount}
+
+        @type amount: int
         """
         self.health += amount
         self.emit(Event(self, 'health', amount))
 
 
+    @preventWhenDead
     def kill(self):
         """
-        XXX
+        Kill me dead.
+
+        This will typically be called externally for a disconnection.
         """
         # kill
         self.health -= self.health
+        self._dead = True
         self.emit(Event(self, 'died', None))
 
         # waste energy
@@ -197,6 +229,7 @@ class Bot(object):
         return self.health
 
 
+    @preventWhenDead
     def charge(self):
         """
         XXX
@@ -227,6 +260,7 @@ class Bot(object):
         self.generated_energy = None
 
 
+    @preventWhenDead
     def receiveEnergy(self, energies):
         """
         XXX
@@ -248,7 +282,8 @@ class Bot(object):
             self.energy_pool.remove(energy)
             self.emit(Event(self, 'e.wasted', 1))
 
-
+    
+    @preventWhenDead
     def consumeEnergy(self, amount):
         """
         XXX
@@ -262,6 +297,7 @@ class Bot(object):
         self.emit(Event(self, 'e.consumed', amount))
 
 
+    @preventWhenDead
     def shareEnergy(self, amount, bot):
         """
         XXX

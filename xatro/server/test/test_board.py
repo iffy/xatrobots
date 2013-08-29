@@ -8,6 +8,7 @@ from xatro.server.interface import IEventReceiver, IKillable
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Material, Bot, Energy
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
+from xatro.server.board import YouAreTooDead
 
 
 class SquareTest(TestCase):
@@ -209,6 +210,19 @@ class BotTest(TestCase):
         b.emit.assert_called_once_with(Event(b, 'health', -3))
 
 
+    def test_damageToDeath(self):
+        """
+        If you damage a bot sufficiently, it is dead.
+        """
+        b = Bot('foo', 'bob')
+        b.square = MagicMock()
+        b.emit = create_autospec(b.emit)
+
+        b.damage(14)
+        b.emit.assert_any_call(Event(b, 'died', None))
+        self.assertEqual(b.hitpoints(), 0)
+
+
     def test_revive(self):
         """
         Should increase the bot's health
@@ -236,6 +250,15 @@ class BotTest(TestCase):
         self.assertEqual(b.hitpoints(), 0)
         b.emit.assert_called_once_with(Event(b, 'died', None))
         b.square.removeBot.assert_called_once_with(b)
+
+        # when dead, you can't do much
+        self.assertRaises(YouAreTooDead, b.damage, 2)
+        self.assertRaises(YouAreTooDead, b.revive, 2)
+        self.assertRaises(YouAreTooDead, b.kill)
+        self.assertRaises(YouAreTooDead, b.charge)
+        self.assertRaises(YouAreTooDead, b.receiveEnergy, [])
+        self.assertRaises(YouAreTooDead, b.consumeEnergy, 1)
+        self.assertRaises(YouAreTooDead, b.shareEnergy, 2, None)
 
 
     def test_kill_energy(self):
