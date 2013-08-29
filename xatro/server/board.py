@@ -50,12 +50,12 @@ class Square(object):
     def __init__(self, board):
         self.id = str(uuid4())
         self.board = board
-        self.contents = {}
+        self._contents = {}
 
 
     def eventReceived(self, event):
         self.board.eventReceived(event)
-        for thing in self.contents.values():
+        for thing in self._contents.values():
             try:
                 thing.eventReceived(event)
             except AttributeError:
@@ -70,7 +70,7 @@ class Square(object):
         if thing.square:
             thing.square.removeThing(thing)
         thing.square = self
-        self.contents[thing.id] = thing
+        self._contents[thing.id] = thing
         self.eventReceived(Event(thing, 'entered', self))
 
 
@@ -79,8 +79,15 @@ class Square(object):
         Remove a bot from this square.
         """
         thing.square = None
-        self.contents.pop(thing.id)
+        self._contents.pop(thing.id)
         self.eventReceived(Event(thing, 'exited', self))
+
+
+    def contents(self):
+        """
+        Return a list of all the things on this square.
+        """
+        return list(self._contents.values())
 
 
 

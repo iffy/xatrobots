@@ -20,7 +20,7 @@ class SquareTest(TestCase):
         """
         q = Square('board')
         self.assertEqual(q.board, 'board')
-        self.assertEqual(q.contents, {})
+        self.assertEqual(q.contents(), [])
         self.assertEqual(q.pylon, None)
         self.assertNotEqual(q.id, None)
 
@@ -79,7 +79,7 @@ class SquareTest(TestCase):
         q.addThing(thing)
 
         self.assertEqual(thing.square, q, "Should set .square attribute")
-        self.assertIn(thing.id, q.contents)
+        self.assertIn(thing, q.contents())
         q.eventReceived.assert_any_call(Event(thing, 'entered', q))
 
 
@@ -98,9 +98,8 @@ class SquareTest(TestCase):
 
         q.removeThing(thing)
         self.assertEqual(thing.square, None, "Should unset .square")
-        self.assertNotIn(thing.id, q.contents)
+        self.assertNotIn(thing, q.contents())
         q.eventReceived.assert_any_call(Event(thing, 'exited', q))
-
 
 
     def test_addThing_removeFromOther(self):
@@ -114,9 +113,21 @@ class SquareTest(TestCase):
         thing.id = 'hey'
         q1.addThing(thing)
         q2.addThing(thing)
-        self.assertNotIn(thing.id, q1.contents)
+        self.assertNotIn(thing.id, q1.contents())
         self.assertEqual(thing.square, q2)
 
+
+    def test_contents(self):
+        """
+        You can list the things on a square.
+        """
+        q = Square(MagicMock())
+
+        a, b = Ore(), Ore()
+        q.addThing(a)
+        q.addThing(b)
+        
+        self.assertEqual(set(q.contents()), set([a, b]))
 
 
 
@@ -241,6 +252,10 @@ class LifesourceTest(TestCase):
 
         square = Square(MagicMock())
         square.addThing(s)
+
+        s.kill()
+
+        self.fail('write me')
 
 
     def test_kill_otherDead(self):
