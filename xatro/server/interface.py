@@ -14,6 +14,9 @@ class IEventReceiver(Interface):
 class IKillable(Interface):
 
 
+    dead = Attribute("True if dead")
+
+
     def damage(amount):
         """
         Damage the thing.

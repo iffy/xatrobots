@@ -8,7 +8,7 @@ from xatro.server.interface import IEventReceiver, IKillable, ILocatable
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
-from xatro.server.board import YouAreTooDead
+from xatro.server.board import TooDead
 
 
 class SquareTest(TestCase):
@@ -20,8 +20,7 @@ class SquareTest(TestCase):
         """
         q = Square('board')
         self.assertEqual(q.board, 'board')
-        self.assertEqual(q.bots, {})
-        self.assertEqual(q.materials, {})
+        self.assertEqual(q.contents, {})
         self.assertEqual(q.pylon, None)
         self.assertNotEqual(q.id, None)
 
@@ -32,7 +31,7 @@ class SquareTest(TestCase):
 
     def test_eventReceived(self):
         """
-        Should send the event to all the bots and to the board.
+        Should send the event to all the contents and to the board.
         """
         board = MagicMock()
         bot1 = Bot('A', 'bob')
@@ -41,8 +40,8 @@ class SquareTest(TestCase):
         bot2 = Bot('B', 'bob')
         bot2.eventReceived = create_autospec(bot2.eventReceived)
         q = Square(board)
-        q.addBot(bot1)
-        q.addBot(bot2)
+        q.addThing(bot1)
+        q.addThing(bot2)
 
         q.eventReceived('hey')
 
@@ -51,53 +50,72 @@ class SquareTest(TestCase):
         bot2.eventReceived.assert_any_call('hey')
 
 
-    def test_addBot(self):
+    def test_eventReceived_nonEventReceivingContents(self):
         """
-        A bot added to a square will cause an event to be emitted, add the bot
-        to the bot list and set the bot's square.
+        If a thing in the square's contents doesn't receive events, it should
+        not cause a problem
         """
-        q = Square('board')
-        called = []
-        q.eventReceived = called.append
+        class Foo(object):
+            square = None
+        thing = Foo()
+        thing.id = '12'
+        q = Square(MagicMock())
+        q.addThing(thing)
 
-        bot1 = Bot('A', 'bob')
-        q.addBot(bot1)
-
-        self.assertEqual(bot1.square, q,
-                         "Should tell the bot it is on the square")
-        self.assertIn(bot1.id, q.bots, "Should have bot1 in square")
-        self.assertEqual(called, [Event(bot1, 'entered', q)])
+        q.eventReceived('hey')
 
 
-    def test_removeBot(self):
+    def test_addThing(self):
         """
-        A bot removed from square will cause an event to be emitted, be
-        removed from the square's list and have bot.square set to None
+        A thing added to a square will cause an event to be emitted, add the
+        thing to the contents list and set the thing's square.
         """
         q = Square('board')
         q.eventReceived = MagicMock()
 
-        bot1 = Bot('A', 'bob')
-        q.addBot(bot1)
+        thing = MagicMock()
+        thing.id = 'hey'
 
-        q.removeBot(bot1)
-        self.assertEqual(bot1.square, None, "Should remove bot's square")
-        self.assertNotIn(bot1.id, q.bots, "Should remove from botlist")
-        q.eventReceived.assert_any_call(Event(bot1, 'exited', q))
+        q.addThing(thing)
+
+        self.assertEqual(thing.square, q, "Should set .square attribute")
+        self.assertIn(thing.id, q.contents)
+        q.eventReceived.assert_any_call(Event(thing, 'entered', q))
 
 
-
-    def test_addBot_removeFromOther(self):
+    def test_removeThing(self):
         """
-        A bot added to a square should be removed from the other square.
+        A thing removed from square will cause an event to be emitted, be
+        removed from the square's contents and have thing.square set to None
+        """
+        q = Square('board')
+        q.eventReceived = MagicMock()
+
+        thing = MagicMock()
+        thing.id = 'ho'
+        
+        q.addThing(thing)
+
+        q.removeThing(thing)
+        self.assertEqual(thing.square, None, "Should unset .square")
+        self.assertNotIn(thing.id, q.contents)
+        q.eventReceived.assert_any_call(Event(thing, 'exited', q))
+
+
+
+    def test_addThing_removeFromOther(self):
+        """
+        A thing added to a square should be removed from the other square.
         """
         q1 = Square(MagicMock())
         q2 = Square(MagicMock())
 
-        bot = Bot('a', 'bob')
-        q1.addBot(bot)
-        q2.addBot(bot)
-        self.assertNotIn(bot.id, q1.bots)
+        thing = MagicMock()
+        thing.id = 'hey'
+        q1.addThing(thing)
+        q2.addThing(thing)
+        self.assertNotIn(thing.id, q1.contents)
+        self.assertEqual(thing.square, q2)
 
 
 
@@ -192,6 +210,48 @@ class LifesourceTest(TestCase):
         s.revive(2)
         self.assertEqual(s.hitpoints(), hp-1)
         s.emit.assert_called_once_with(Event(s, 'hp', 2))
+
+
+    def test_kill(self):
+        """
+        A lifesource can be killed, and once killed, will be dead.
+        """
+        obj = MagicMock()
+        s = Lifesource(obj)
+        s.emit = create_autospec(s.emit)
+
+        s.kill()
+        self.assertEqual(s.hitpoints(), 0)
+        s.emit.assert_called_once_with(Event(s, 'died', None))
+
+        # should kill the thing it's a lifesource for.
+        obj.kill.assert_called_once_with()
+
+        # things that can't be done when killed
+        self.assertRaises(TooDead, s.damage, 2)
+        self.assertRaises(TooDead, s.revive, 2)
+        self.assertRaises(TooDead, s.kill)
+
+
+    def test_kill_revertToOre(self):
+        """
+        A killed lifesource will revert to a piece of Ore.
+        """
+        s = Lifesource(MagicMock())
+
+        square = Square(MagicMock())
+        square.addThing(s)
+
+
+    def test_kill_otherDead(self):
+        """
+        If the other is already dead, don't raise an exception when I die.
+        """
+        obj = MagicMock()
+        obj.kill.side_effect = TooDead()
+
+        s = Lifesource(obj)
+        s.kill()
 
 
 
@@ -314,16 +374,16 @@ class BotTest(TestCase):
         b.kill()
         self.assertEqual(b.hitpoints(), 0)
         b.emit.assert_called_once_with(Event(b, 'died', None))
-        b.square.removeBot.assert_called_once_with(b)
+        b.square.removeThing.assert_called_once_with(b)
 
         # when dead, you can't do much
-        self.assertRaises(YouAreTooDead, b.damage, 2)
-        self.assertRaises(YouAreTooDead, b.revive, 2)
-        self.assertRaises(YouAreTooDead, b.kill)
-        self.assertRaises(YouAreTooDead, b.charge)
-        self.assertRaises(YouAreTooDead, b.receiveEnergies, [])
-        self.assertRaises(YouAreTooDead, b.consumeEnergy, 1)
-        self.assertRaises(YouAreTooDead, b.shareEnergy, 2, None)
+        self.assertRaises(TooDead, b.damage, 2)
+        self.assertRaises(TooDead, b.revive, 2)
+        self.assertRaises(TooDead, b.kill)
+        self.assertRaises(TooDead, b.charge)
+        self.assertRaises(TooDead, b.receiveEnergies, [])
+        self.assertRaises(TooDead, b.consumeEnergy, 1)
+        self.assertRaises(TooDead, b.shareEnergy, 2, None)
 
 
     def test_kill_energy(self):

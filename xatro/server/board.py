@@ -13,7 +13,21 @@ from functools import wraps
 
 class EnergyNotConsumedYet(Exception): pass
 class NotEnoughEnergy(Exception): pass
-class YouAreTooDead(Exception): pass
+class TooDead(Exception): pass
+
+
+
+def preventWhenDead(f):
+    """
+    Decorator for preventing calls when too dead.
+    """
+    @wraps(f)
+    def wrapped(instance, *args, **kwargs):
+        if instance.dead:
+            raise TooDead()
+        return f(instance, *args, **kwargs)
+    return wrapped
+
 
 
 class Square(object):
@@ -36,34 +50,37 @@ class Square(object):
     def __init__(self, board):
         self.id = str(uuid4())
         self.board = board
-        self.bots = {}
-        self.materials = {}
+        self.contents = {}
 
 
     def eventReceived(self, event):
         self.board.eventReceived(event)
-        for bot in self.bots.values():
-            bot.eventReceived(event)
+        for thing in self.contents.values():
+            try:
+                thing.eventReceived(event)
+            except AttributeError:
+                pass
+            
 
 
-    def addBot(self, bot):
+    def addThing(self, thing):
         """
-        Add a bot to this square.
+        Add a thing to this square.
         """
-        if bot.square:
-            bot.square.removeBot(bot)
-        bot.square = self
-        self.bots[bot.id] = bot
-        self.eventReceived(Event(bot, 'entered', self))
+        if thing.square:
+            thing.square.removeThing(thing)
+        thing.square = self
+        self.contents[thing.id] = thing
+        self.eventReceived(Event(thing, 'entered', self))
 
 
-    def removeBot(self, bot):
+    def removeThing(self, thing):
         """
         Remove a bot from this square.
         """
-        bot.square = None
-        del self.bots[bot.id]
-        self.eventReceived(Event(bot, 'exited', self))
+        thing.square = None
+        self.contents.pop(thing.id)
+        self.eventReceived(Event(thing, 'exited', self))
 
 
 
@@ -110,16 +127,20 @@ class Ore(object):
 class Lifesource(object):
     """
     I am a lifesource for something.  If I die, the thing I'm tied to dies.
+
+    @ivar other: The thing I'm a life source for.
     """
 
     implements(ILocatable, IKillable)
 
     square = None
     _hitpoints = 10
+    dead = False
 
 
     def __init__(self, other):
         self.id = str(uuid4())
+        self.other = other
 
 
     def emit(self, event):
@@ -134,6 +155,7 @@ class Lifesource(object):
         return self._hitpoints
 
 
+    @preventWhenDead
     def damage(self, amount):
         """
         XXX
@@ -142,6 +164,7 @@ class Lifesource(object):
         self.emit(Event(self, 'hp', -amount))
 
 
+    @preventWhenDead
     def revive(self, amount):
         """
         XXX
@@ -150,17 +173,19 @@ class Lifesource(object):
         self.emit(Event(self, 'hp', amount))
 
 
+    @preventWhenDead
+    def kill(self):
+        """
+        XXX
+        """
+        self._hitpoints = 0
+        self.dead = True
+        self.emit(Event(self, 'died', None))
 
-def preventWhenDead(f):
-    """
-    Decorator for preventing calls when too dead.
-    """
-    @wraps(f)
-    def wrapped(instance, *args, **kwargs):
-        if instance._dead:
-            raise YouAreTooDead()
-        return f(instance, *args, **kwargs)
-    return wrapped
+        try:
+            self.other.kill()
+        except TooDead:
+            pass
 
 
 
@@ -187,7 +212,7 @@ class Bot(object):
     team = None
     name = None
     health = 10
-    _dead = False
+    dead = False
     equipment = None
     portal = None
     square = None
@@ -254,8 +279,8 @@ class Bot(object):
         This will typically be called externally for a disconnection.
         """
         # kill
-        self.health -= self.health
-        self._dead = True
+        self.health = 0
+        self.dead = True
         self.emit(Event(self, 'died', None))
 
         # waste energy
@@ -263,7 +288,7 @@ class Bot(object):
             self.generated_energy.waste()
 
         # remove
-        self.square.removeBot(self)
+        self.square.removeThing(self)
 
 
     def hitpoints(self):
