@@ -19,15 +19,15 @@ Overview
 -------------------------------------------------------------------------------
 Each game is played on a board of squares.  Bots are members of a team.  Each
 square on the board contains a pylon which can be captured by bots.  A team
-wins when it controls all the pylons on the board.
+wins when it has captured all the pylons on the board.
 
 Bots have limited (but renewable) amounts of health and energy.  Using energy,
 bots can deal damage to other bots by shooting them with cannons, may heal other
 bots by using repair kits, may move to adjacent squares and may capture pylons.
 Bots can perform work to gain more energy.
 
-Each square contains a number of material blocks.  Material blocks can be
-forged into cannons, repair kits or bot portals.
+Each square contains a certain amount of ore.  Ore can be converted into
+cannons, repair kits or bot portals.
 
 Bots can not communicate on the server.  It is expected that communication and
 coordination will happen on the client's computers (that's the whole point).
@@ -58,49 +58,47 @@ Note that all the hard-coded numbers in this doc should be configurable (energy
 requirements, etc...)
 
 
-#### Pre-Start Phase
+#### Pre-Game Phase
 
 After the board is created, a single bot from each team (the captain) can
 connect to the game board and examine the squares to determine where it wants
-to start.  Each square may have a different number of material blocks, which
+to start.  Each square may have a different amount of ore, which
 may influence the decision.  At this point, team captain bots may use the
 following commands:
 
     boardDimensions() -> (integer, integer)
 
-    materialCount(square) -> integer
-        Return the number of material blocks in a square.
+    oreCount(square) -> integer
+        Return the amount of ore in the square.
     
-    workToCapture(square) -> (nonce='', difficulty, scale)
-        Return the work required to capture a square.  `nonce` will always be
-        an empty string during the Pre-Start phase.
+    workToLand(square) -> (nonce='', difficulty, scale)
+        Return the work required to land on a square.  `nonce` will always be
+        an empty string during the Pre-Game Phase.
 
 
-The game is then started by the server and all bots move to the Captain phase.
-
-
-
-#### Captain Phase
-
-Each team captain bot then needs to do the work required to capture an
-uncaptured pylon and thereby put themselves on the board.  When in the Captain
-phase a captain bot may use the commands available during Pre-Start in addition
-to the following commands:
-
-    workToCapture(square) -> (nonce, difficulty, scale)
-        Same as in Pre-Start except nonce is no longer an empty string.
-
-    capture(square, solution) -> ()
-        Capture a square and put the captain bot on the square.  `solution` is
-        a solution to the problem returned by `workToCapture`
-
-Once a bot captures a square, the captain lands on the square and they
-immediately move to the In-Play phase.  All other bots that connect will be in
-the On-Deck phase.
+The game is then started by the server and all bots move to the Landing phase.
 
 
 
-#### In-Play
+#### Landing Phase
+
+Each team captain bot then needs to do the work required to land on the board.
+When in the Landing Phase a captain bot may use the commands available during
+the Pre-Game Phase in addition to the following commands:
+
+    workToLand(square) -> (nonce, difficulty, scale)
+        Same as in Pre-Game Phase except `nonce` is no longer an empty string.
+
+    land(square, solution) -> ()
+        Put the captain bot on the square.  `solution` is
+        a solution to the problem returned by `workToLand`
+
+Once the captain lands on a square, the captain immediately move to the Play
+Phase.  All other bots that connect will be in the On-Deck Phase.
+
+
+
+#### Play Phase
 
 When a bot is in play, the following commands are available:
 
@@ -142,21 +140,12 @@ When a bot is in play, the following commands are available:
         Requires 1 energy.
 
         Returns a dict of all the things in the square, including bots and
-        material blocks.  It looks like this:
+        ore.  It looks like this:
 
             {
-                'bots': {
-                    'jim': ...,
-                    'bob': ...
-                },
-                'materials': {
-                    'material1': {
-                        'use': None,
-                        'bot': None,
-                        'health': 100,
-                    },
-                    ...
-                },
+                'jim': <bot dict>,
+                'bob': <bot dict>,
+                'o-1': <ore dict>,
             }
 
 
@@ -185,21 +174,21 @@ When a bot is in play, the following commands are available:
 
 
 
-    provisionCannon(material)
+    convertToCannon(ore)
         Requires 1 energy.
 
-        Provision the material as a cannon and equip it.
+        Convert the ore into a cannon and equip it.
 
-    provisionRepairKit(material)
+    convertToRepairKit(ore)
         Requires 1 energy.
 
-        Provision the material as a repair kit and equip it.
+        Convert the ore into a repair kit and equip it.
 
-    provisionPortal(material) -> portal_key
+    convertToPortal(material) -> portal_key
         Requires 1 energy.
 
-        Provision the material as a bot portal.  Another bot on your team can
-        then enter the game through the portal.
+        Convert the ore into a bot portal.  Another bot on your team can
+        then enter the game through the portal (by using the `portal_key`).
 
 
 
@@ -235,25 +224,27 @@ When a bot is in play, the following commands are available:
 
 
 
-#### On-Deck
+#### On-Deck Phase
 
 Bots who connect to the game after the captain has landed on the board will be
-in the on-deck phase, waiting for a portal to be provisioned for them.  When
+in the On-Deck Phase, waiting for a portal to be provisioned for them.  When
 in this phase, bots can do the following:
 
     usePortal(portal_key)
         Land the bot on the ground and link them to the given portal.  Once
-        they land, they will be in the In-Play phase.
+        they land, they will be in the Play Phase.
 
 
 
-Provisioned Materials
+Converted Ore
 -------------------------------------------------------------------------------
-Prior to being provisioned, materials are indestructable.  After provisioning,
-they are tied to the thing provisioned (cannon, repair kit) and destroying the
-material will destroy the tool provisioned from them.  If a portal is destroyed,
-the bot that landed with that portal will die.
+Prior to being converted into tools, ore is indestructable.  After converting,
+the ore becomes a life source for the tool.  Destroying the life source will 
+destroy the associated tool.  If a portal is destroyed, the bot that landed
+with that portal will die.
 
+Likewise, if a bot carrying a tool dies, the life source used to make the tool
+and the portal used to land the bot with both "die" and revert back to ore.
 
 
 Work
