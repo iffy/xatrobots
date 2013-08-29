@@ -444,6 +444,7 @@ class BotTest(TestCase):
         self.assertEqual(b.hitpoints(), 0)
         b.emit.assert_called_once_with(Event(b, 'died', None))
         b.square.removeThing.assert_called_once_with(b)
+        b.emit.reset_mock()
 
         # when dead, you can't do much
         self.assertRaises(TooDead, b.damage, 2)
@@ -456,6 +457,9 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.equip, Tool('foo'))
         self.assertRaises(TooDead, b.shoot, None, 4)
         self.assertRaises(TooDead, b.heal, None, 3)
+        self.assertRaises(TooDead, b.makeTool, None, None)
+
+        self.assertEqual(b.emit.call_count, 0, str(b.emit.call_args))
 
 
     def test_kill_energy(self):
@@ -699,6 +703,30 @@ class BotTest(TestCase):
         self.assertRaises(LackingTool, bot1.heal, bot2, 2)
 
 
+    def test_makeTool(self):
+        """
+        You can turn ore into a tool.
+        """
+        square = Square(MagicMock())
+        bot1 = Bot('foo', 'bob')
+        bot1.emit = create_autospec(bot1.emit)
+        ore = Ore()
+        square.addThing(ore)
+
+        bot1.makeTool(ore, 'yeti')
+
+        # bot
+        tool = bot1.tool
+        self.assertTrue(isinstance(tool, Tool))
+        self.assertEqual(tool.kind, 'yeti')
+
+        bot1.emit.assert_any_call(Event(bot1, 'made', tool))
+        
+        # lifesource
+        contents = square.contents()
+        ls = contents[0]
+        self.assertTrue(isinstance(ls, Lifesource), ls)
+        self.assertEqual(ls.other, tool)
 
 
 

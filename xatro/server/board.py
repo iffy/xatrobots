@@ -506,6 +506,22 @@ class Bot(object):
         what.revive(amount)
 
 
+    @preventWhenDead
+    def makeTool(self, ore, kind):
+        """
+        Make a tool out of some ore.
+        """
+        tool = Tool(kind)
+        self.emit(Event(self, 'made', tool))
+        self.equip(tool)
+
+        ls = Lifesource(tool)
+
+        square = ore.square
+        square.removeThing(ore)
+        square.addThing(ls)
+
+
 
 class Energy(object):
     """
