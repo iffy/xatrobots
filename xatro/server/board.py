@@ -14,6 +14,7 @@ from functools import wraps
 class EnergyNotConsumedYet(Exception): pass
 class NotEnoughEnergy(Exception): pass
 class TooDead(Exception): pass
+class LackingTool(Exception): pass
 
 
 
@@ -239,6 +240,22 @@ class Lifesource(object):
 
 
 
+def requireTool(required_tool):
+    """
+    Decorator for requiring the bot to have the specified tool in order to
+    execute this function.
+    """
+    def deco(f):
+        @wraps(f)
+        def wrapped(instance, *args, **kwargs):
+            if not instance.tool or instance.tool.kind != required_tool:
+                raise LackingTool(required_tool)
+            return f(instance, *args, **kwargs)
+        return wrapped
+    return deco
+
+
+
 class Bot(object):
     """
     I am a bot in play.
@@ -459,6 +476,20 @@ class Bot(object):
         """
         self.tool = None
         self.emit(Event(self, 'unequipped', None))
+
+
+    @preventWhenDead
+    @requireTool('cannon')
+    def shoot(self, what, damage):
+        """
+        Shoot something.
+
+        @param what: An L{IKillable}
+        @param damage: Amount of damage to do.
+        @type damage: int
+        """
+        self.emit(Event(self, 'shot', what))
+        what.damage(damage)
 
 
 

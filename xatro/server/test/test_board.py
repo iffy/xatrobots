@@ -9,7 +9,7 @@ from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
-from xatro.server.board import TooDead
+from xatro.server.board import TooDead, LackingTool
 
 
 class SquareTest(TestCase):
@@ -454,6 +454,7 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.consumeEnergy, 1)
         self.assertRaises(TooDead, b.shareEnergy, 2, None)
         self.assertRaises(TooDead, b.equip, Tool('foo'))
+        self.assertRaises(TooDead, b.shoot, None, 4)
 
 
     def test_kill_energy(self):
@@ -633,6 +634,37 @@ class BotTest(TestCase):
         tool.kill()
         self.assertEqual(bot.tool, None, "Should unequip")
         bot.emit.assert_called_once_with(Event(bot, 'unequipped', None))
+
+
+    def test_shoot(self):
+        """
+        You can shoot another thing with a cannon
+        """
+        bot1 = Bot('foo', 'bob')
+        bot1.emit = create_autospec(bot1.emit)
+        bot2 = Bot('foo', 'victim')
+
+        bot1.equip(Tool('cannon'))
+        bot1.emit.reset_mock()
+
+        hp = bot2.hitpoints()
+
+        bot1.shoot(bot2, 3)
+        self.assertEqual(bot2.hitpoints(), hp-3)
+        bot1.emit.assert_called_once_with(Event(bot1, 'shot', bot2))
+
+
+    def test_shoot_noCannon(self):
+        """
+        You can't shoot without a cannon, or with a cat.
+        """
+        bot1 = Bot('foo', 'bob')
+        bot2 = Bot('foo', 'bill')
+        self.assertRaises(LackingTool, bot1.shoot, bot2, 2)
+
+        bot1.tool = Tool('cat')
+        self.assertRaises(LackingTool, bot1.shoot, bot2, 2)        
+
 
 
 
