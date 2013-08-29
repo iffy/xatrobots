@@ -250,8 +250,8 @@ and the portal used to land the bot with both "die" and revert back to ore.
 Work
 -------------------------------------------------------------------------------
 Most of the moves that bots can make require energy, which is produced by doing
-"work", similar to the work done in mining bitcoins.  Capturing squares and
-unlocking pylons also require work.
+"work", similar to the work done in mining bitcoins.  Landing and unlocking and
+locking pylons also require work.
 
 A piece of work is defined by a `nonce` and a `goal`:
 
