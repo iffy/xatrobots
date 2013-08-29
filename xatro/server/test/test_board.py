@@ -207,6 +207,18 @@ class LifesourceTest(TestCase):
         s.emit.assert_called_once_with(Event(s, 'hp', -2))
 
 
+    def test_damageToDeath(self):
+        """
+        Excessive damage will kill a Lifesource
+        """
+        s = Lifesource(None)
+        s.kill = create_autospec(s.kill)
+
+        s.damage(s.hitpoints()+2)
+        self.assertEqual(s.hitpoints(), 0)
+        s.kill.assert_called_once_with()
+
+
     def test_revive(self):
         """
         You can restore health of a lifesource
@@ -229,6 +241,7 @@ class LifesourceTest(TestCase):
         """
         obj = MagicMock()
         s = Lifesource(obj)
+        s.square = MagicMock()
         s.emit = create_autospec(s.emit)
 
         s.kill()
@@ -255,7 +268,10 @@ class LifesourceTest(TestCase):
 
         s.kill()
 
-        self.fail('write me')
+        self.assertNotIn(s, square.contents(), "The lifesource should not be "
+                         "on the square anymore")
+        contents = square.contents()
+        self.assertTrue(isinstance(contents[0], Ore), "Should put ore back")
 
 
     def test_kill_otherDead(self):
@@ -266,6 +282,7 @@ class LifesourceTest(TestCase):
         obj.kill.side_effect = TooDead()
 
         s = Lifesource(obj)
+        s.square = MagicMock()
         s.kill()
 
 

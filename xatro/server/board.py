@@ -167,8 +167,12 @@ class Lifesource(object):
         """
         XXX
         """
+        amount = min(self._hitpoints, amount)
         self._hitpoints -= amount
         self.emit(Event(self, 'hp', -amount))
+
+        if self._hitpoints == 0:
+            self.kill()
 
 
     @preventWhenDead
@@ -189,10 +193,16 @@ class Lifesource(object):
         self.dead = True
         self.emit(Event(self, 'died', None))
 
+        # kill the thing I support
         try:
             self.other.kill()
         except TooDead:
             pass
+
+        # replace myself with Ore
+        square = self.square
+        square.removeThing(self)
+        square.addThing(Ore())
 
 
 
