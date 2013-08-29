@@ -189,7 +189,7 @@ class LifesourceTest(TestCase):
         Emitting when there's a square should call the square's eventReceived
         method.
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
         s.square = MagicMock()
         s.emit('foo')
         s.square.eventReceived.assert_called_once_with('foo')
@@ -199,23 +199,23 @@ class LifesourceTest(TestCase):
         """
         Emitting when there's no square should be a nop
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
         s.emit('foo')
 
 
     def test_ILocatable(self):
-        verifyObject(ILocatable, Lifesource(MagicMock()))
+        verifyObject(ILocatable, Lifesource())
 
 
     def test_IKillable(self):
-        verifyObject(IKillable, Lifesource(MagicMock()))
+        verifyObject(IKillable, Lifesource())
 
 
     def test_hitpoints(self):
         """
         Should have hitpoints
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
         self.assertTrue(s.hitpoints() > 0)
 
 
@@ -223,7 +223,7 @@ class LifesourceTest(TestCase):
         """
         You can damage a lifesource
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
         s.emit = create_autospec(s.emit)
         hp = s.hitpoints()
 
@@ -236,7 +236,7 @@ class LifesourceTest(TestCase):
         """
         Excessive damage will kill a Lifesource
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
         s.kill = create_autospec(s.kill)
 
         s.damage(s.hitpoints()+2)
@@ -248,7 +248,7 @@ class LifesourceTest(TestCase):
         """
         You can restore health of a lifesource
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
         s.emit = create_autospec(s.emit)
         hp = s.hitpoints()
 
@@ -264,8 +264,9 @@ class LifesourceTest(TestCase):
         """
         A lifesource can be killed, and once killed, will be dead.
         """
+        s = Lifesource()
         obj = MagicMock()
-        s = Lifesource(obj)
+        s.pairWith(obj)
         s.square = MagicMock()
         s.emit = create_autospec(s.emit)
 
@@ -286,7 +287,7 @@ class LifesourceTest(TestCase):
         """
         A killed lifesource will revert to a piece of Ore.
         """
-        s = Lifesource(MagicMock())
+        s = Lifesource()
 
         square = Square(MagicMock())
         square.addThing(s)
@@ -306,7 +307,8 @@ class LifesourceTest(TestCase):
         obj = MagicMock()
         obj.kill.side_effect = TooDead()
 
-        s = Lifesource(obj)
+        s = Lifesource()
+        s.pairWith(obj)
         s.square = MagicMock()
         s.kill()
 
@@ -315,8 +317,9 @@ class LifesourceTest(TestCase):
         """
         If the other thing I'm a support for is destroyed, I should notice.
         """
+        s = Lifesource()
         tool = Tool('gummy bear')
-        s = Lifesource(tool)
+        s.pairWith(tool)
         s.kill = create_autospec(s.kill)
         tool.kill()
         s.kill.assert_called_once_with()

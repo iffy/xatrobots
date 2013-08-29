@@ -173,15 +173,24 @@ class Lifesource(object):
 
     implements(ILocatable, IKillable)
 
+    other = None
     square = None
     _hitpoints = 10
     dead = False
 
 
-    def __init__(self, other):
+    def __init__(self, other=None):
         self.id = str(uuid4())
+        if other:
+            self.pairWith(other)
+
+
+    def pairWith(self, other):
+        """
+        XXX
+        """
         self.other = other
-        self.other.destroyed().addCallback(lambda x:self.kill())
+        other.destroyed().addCallback(lambda x:self.kill())
 
 
     def emit(self, event):
@@ -228,10 +237,11 @@ class Lifesource(object):
         self.emit(Event(self, 'died', None))
 
         # kill the thing I support
-        try:
-            self.other.kill()
-        except TooDead:
-            pass
+        if self.other:
+            try:
+                self.other.kill()
+            except TooDead:
+                pass
 
         # replace myself with Ore
         square = self.square
