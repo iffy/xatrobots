@@ -202,6 +202,8 @@ class Lifesource(object):
     I am a lifesource for something.  If I die, the thing I'm tied to dies.
 
     @ivar other: The thing I'm a life source for.
+    @ivar square: Square I'm on.
+    @ivar dead: C{True} means I'm dead.
     """
 
     implements(ILocatable, IKillable)
@@ -220,9 +222,12 @@ class Lifesource(object):
             self.pairWith(other)
 
 
+    @preventWhenDead
     def pairWith(self, other):
         """
-        XXX
+        Forever entwine myself with the `other` (or until I am paired with
+        another).  Once paired, if the other is destroyed, I will die.  If I
+        die, I will take the other down with me.
         """
         if self.other:
             # cancel previous pairing
@@ -237,7 +242,7 @@ class Lifesource(object):
 
     def emit(self, event):
         """
-        XXX
+        Emit an event to my square.
         """
         if self.square:
             self.square.eventReceived(event)
@@ -250,7 +255,7 @@ class Lifesource(object):
     @preventWhenDead
     def damage(self, amount):
         """
-        XXX
+        Cause me damage.
         """
         amount = min(self._hitpoints, amount)
         self._hitpoints -= amount
@@ -263,7 +268,7 @@ class Lifesource(object):
     @preventWhenDead
     def revive(self, amount):
         """
-        XXX
+        Give me life.
         """
         self._hitpoints += amount
         self.emit(Event(self, 'hp', amount))
@@ -272,7 +277,7 @@ class Lifesource(object):
     @preventWhenDead
     def kill(self):
         """
-        XXX
+        Kill me.
         """
         self._hitpoints = 0
         self.dead = True
@@ -306,6 +311,9 @@ def requireTool(required_tool):
     """
     Decorator for requiring the bot to have the specified tool in order to
     execute this function.
+
+    @param required_tool: String name of the tool required in order to run
+        the function this decorates.
     """
     def deco(f):
         @wraps(f)
@@ -324,23 +332,26 @@ class Bot(object):
 
     @ivar team: Team name
     @ivar name: Bot name
-    @ivar health: Amount of health left. 0 = dead.
     @ivar tool: A tool I have.
     @ivar portal: The portal where I landed.
     @ivar square: The square I'm in right now.
 
-    @ivar energy: List of the L{Energy} available to me.  This may
+    @ivar energy_pool: List of the L{Energy} available to me.  This may
         include L{Energy} shared with me by other L{Bot}s.
+    
     @ivar generated_energy: The L{Energy} I last generated (if it hasn't been
         consumed yet).  This may have been shared with another L{Bot} and so
         won't be found in my C{energy_pool}.
+    
+    @ivar event_receiver: A function that will be called with every L{Event}
+        I see.
     """
 
     implements(IEventReceiver, IKillable, ILocatable)
 
     team = None
     name = None
-    health = 10
+    _hitpoints = 10
     dead = False
     tool = None
     portal = None
@@ -382,11 +393,11 @@ class Bot(object):
 
         @type amount: int
         """
-        amount = min(amount, self.health)
-        self.health -= amount
+        amount = min(amount, self._hitpoints)
+        self._hitpoints -= amount
         self.emit(Event(self, 'hp', -amount))
 
-        if self.health <= 0:
+        if self._hitpoints <= 0:
             self.kill()
 
 
@@ -397,7 +408,7 @@ class Bot(object):
 
         @type amount: int
         """
-        self.health += amount
+        self._hitpoints += amount
         self.emit(Event(self, 'hp', amount))
 
 
@@ -409,7 +420,7 @@ class Bot(object):
         This will typically be called externally for a disconnection.
         """
         # kill
-        self.health = 0
+        self._hitpoints = 0
         self.dead = True
         self.emit(Event(self, 'died', None))
 
@@ -436,7 +447,7 @@ class Bot(object):
 
 
     def hitpoints(self):
-        return self.health
+        return self._hitpoints
 
 
     @preventWhenDead
@@ -576,7 +587,7 @@ class Bot(object):
         Heal something.
 
         @param what: An L{IKillable}
-        @param amount: Amount of health to give.
+        @param amount: Amount of hitpoints to give.
         @type amount: int
         """
         self.emit(Event(self, 'healed', what))

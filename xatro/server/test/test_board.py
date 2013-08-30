@@ -290,6 +290,7 @@ class LifesourceTest(TestCase):
         self.assertRaises(TooDead, s.damage, 2)
         self.assertRaises(TooDead, s.revive, 2)
         self.assertRaises(TooDead, s.kill)
+        self.assertRaises(TooDead, s.pairWith, 'anything')
 
 
     def test_kill_revertToOre(self):
@@ -374,7 +375,7 @@ class BotTest(TestCase):
         a team.
         """
         b = Bot('foo', 'bob')
-        self.assertEqual(b.health, 10)
+        self.assertEqual(b.hitpoints(), 10)
         self.assertEqual(b.energy_pool, [])
         self.assertEqual(b.generated_energy, None)
         self.assertEqual(b.name, 'bob')
