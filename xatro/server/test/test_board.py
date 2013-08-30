@@ -451,11 +451,15 @@ class BotTest(TestCase):
 
     num = 0
 
-    def mkBot(self):
+    def mkBot(self, real_square=False):
         num = self.num
         self.num += 1
         b = Bot('team%d' % (num,), 'bot%d' % (num,)) 
-        b.square = MagicMock()
+        if real_square:
+            square = Square(MagicMock())
+            square.addThing(b)
+        else:
+            b.square = MagicMock()
         b.emit = create_autospec(b.emit)
         return b
 
@@ -1000,6 +1004,72 @@ class BotTest(TestCase):
         bot2 = self.mkBot()
         bot2.square = None
         self.assertRaises(NotAllowed, bot2.usePortal, bot1, 'something')
+
+
+    def test_breakLock(self):
+        """
+        A bot can break the lock of a Pylon
+        """
+        bot = self.mkBot(real_square=True)
+        pylon = Pylon()
+        pylon.setLocks(3)
+        bot.square.addThing(pylon)
+
+        bot.breakLock(pylon)
+        bot.emit.assert_called_once_with(Event(bot, 'lock.broken', pylon))
+        self.assertEqual(pylon.locks, 2)
+
+
+    def test_breakLock_sameSquare(self):
+        """
+        A bot has to be in the same square in order to break the lock.
+        """
+        bot = self.mkBot(real_square=True)
+        pylon = Pylon()
+        self.assertRaises(NotAllowed, bot.breakLock, pylon)
+        pylon.square = 'foo'
+        self.assertRaises(NotAllowed, bot.breakLock, pylon)
+
+
+    def test_breakLock_capture(self):
+        """
+        A bot that breaks the last lock on a pylon captures the pylon.
+        """
+        bot = self.mkBot(real_square=True)
+        pylon = Pylon()
+        pylon.setLocks(1)
+        bot.square.addThing(pylon)
+
+        bot.breakLock(pylon)
+        bot.emit.assert_any_call(Event(bot, 'pylon.captured', pylon))
+        self.assertEqual(pylon.team, bot.team, "Should change team")
+        self.assertEqual(pylon.locks, 1, "Should have another lock")
+
+
+    def test_addLock(self):
+        """
+        A bot can add a lock to a Pylon
+        """
+        bot = self.mkBot(real_square=True)
+        pylon = Pylon()
+        pylon.setLocks(3)
+        bot.square.addThing(pylon)
+
+        bot.addLock(pylon)
+        bot.emit.assert_called_once_with(Event(bot, 'lock.added', pylon))
+        self.assertEqual(pylon.locks, 4)
+
+
+    def test_addLock_sameSquare(self):
+        """
+        A bot has to be in the same square in order to add a lock.
+        """
+        bot = self.mkBot(real_square=True)
+        pylon = Pylon()
+        self.assertRaises(NotAllowed, bot.addLock, pylon)
+        pylon.square = 'foo'
+        self.assertRaises(NotAllowed, bot.addLock, pylon)
+
 
 
 

@@ -625,7 +625,7 @@ class Bot(object):
         @type damage: int
         """
         self._requireSameSquare(what)
-        
+
         self.emit(Event(self, 'shot', what))
         what.damage(damage)
 
@@ -691,6 +691,30 @@ class Bot(object):
 
         ls.pairWith(tool)
         tool.lifesource = ls
+
+
+    def breakLock(self, pylon):
+        """
+        Break a lock on a pylon.
+        """
+        self._requireSameSquare(pylon)
+
+        pylon.locks -= 1
+        self.emit(Event(self, 'lock.broken', pylon))
+        if pylon.locks == 0:
+            pylon.team = self.team
+            pylon.locks = 1
+            self.emit(Event(self, 'pylon.captured', pylon))
+
+
+    def addLock(self, pylon):
+        """
+        Add a lock to a pylon.
+        """
+        self._requireSameSquare(pylon)
+
+        pylon.locks += 1
+        self.emit(Event(self, 'lock.added', pylon))
 
 
 
