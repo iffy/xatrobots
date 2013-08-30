@@ -1233,7 +1233,15 @@ class BoardTest(TestCase):
         self.assertEqual(len(board.squares), 1)
         self.assertEqual(square.coordinates, Coord(0,0))
         self.assertEqual(board.squares[Coord(0,0)], square)
-        
+
+
+    def test_addSquare_conflict(self):
+        """
+        It should cause an error to add a square at the same location twice.
+        """
+        board = Board()
+        board.addSquare((0, 0))
+        self.assertRaises(NotAllowed, board.addSquare, (0,0))
 
 
     def test_adjacentSquares(self):
@@ -1268,6 +1276,42 @@ class BoardTest(TestCase):
                          "not\n\n%r\n" % (coord,
                          [x.coordinates for x in expected_squares],
                          [x.coordinates for x in actual]))
+
+
+    def test_addBot(self):
+        """
+        Bots can join the game, which causes a joined event to happen.  The
+        bots are then in noman's land until they leave.
+        """
+        board = Board()
+        board.eventReceived = create_autospec(board.eventReceived)
+        self.assertEqual(len(board.bots), 0)
+        bot = Bot('foo', 'bar')
+
+        board.addBot(bot)
+        board.eventReceived.assert_called_once_with(Event(bot, 'joined', board))
+        self.assertEqual(len(board.bots), 1)
+
+
+    def test_removeBot(self):
+        """
+        Bots can leave the game, which causes a leaving event.
+        """
+        board = Board()
+        board.eventReceived = create_autospec(board.eventReceived)
+        self.assertEqual(len(board.bots), 0)
+        bot = Bot('foo', 'bar')
+        board.addBot(bot)
+
+        board.eventReceived.reset_mock()
+        board.removeBot(bot)
+        board.eventReceived.assert_called_once_with(Event(bot, 'quit', board))
+        self.assertEqual(len(board.bots), 0)
+
+
+
+
+
         
 
 

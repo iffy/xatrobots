@@ -80,11 +80,12 @@ class Board(object):
     def __init__(self, game=None):
         self.game = game
         self.squares = {}
+        self.bots = {}
 
 
     def eventReceived(self, event):
         """
-        XXX
+        Called when I receive an event.
         """
         if self.game:
             self.game.eventReceived(event)
@@ -92,8 +93,15 @@ class Board(object):
 
     def addSquare(self, coord):
         """
-        XXX
+        Add a square to me for the given coordinates.
+
+        @param coord: A tuple (x,y).
+
+        @raise NotAllowed: If the coordinate is already occupied by a square.
         """
+        if coord in self.squares:
+            raise NotAllowed('%r is already occupied' % (coord,))
+
         square = Square(self)
         self.squares[coord] = square
         square.coordinates = coord
@@ -104,11 +112,27 @@ class Board(object):
 
     def adjacentSquares(self, square):
         """
-        XXX
+        Return the list of squares that are adjacent to the given square.
         """
         x,y = square.coordinates
         poss = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
         return [self.squares[c] for c in poss if c in self.squares]
+
+
+    def addBot(self, bot):
+        """
+        Called to indicate that the bot has joined the game.
+        """
+        self.bots[bot.id] = bot
+        self.eventReceived(Event(bot, 'joined', self))
+
+
+    def removeBot(self, bot):
+        """
+        Called to indicate that the bot has quit the game.
+        """
+        self.bots.pop(bot.id)
+        self.eventReceived(Event(bot, 'quit', self))
 
 
 
