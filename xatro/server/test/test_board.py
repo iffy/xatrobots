@@ -5,11 +5,13 @@ from zope.interface.verify import verifyObject
 from mock import MagicMock, create_autospec
 
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
+from xatro.server.interface import IDictable
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool, Board, Coord
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 from xatro.server.board import NotOnSquare, LackingTool, NotAllowed
+from xatro.error import NotFound
 
 
 
@@ -25,6 +27,14 @@ class SquareTest(TestCase):
         self.assertEqual(q.contents(), [])
         self.assertEqual(q.pylon, None)
         self.assertNotEqual(q.id, None)
+
+
+    def test_IDictable(self):
+        verifyObject(IDictable, Square(None))
+
+
+    def test_toDict_json(self):
+        Square(Board()).toDict()
 
 
     def test_IEventReceiver(self):
@@ -155,6 +165,10 @@ class SquareTest(TestCase):
 class PylonTest(TestCase):
 
 
+    def test_IDictable(self):
+        verifyObject(IDictable, Pylon())
+
+
     def test_ILocatable(self):
         verifyObject(ILocatable, Pylon())
 
@@ -226,12 +240,20 @@ class PylonTest(TestCase):
 class OreTest(TestCase):
 
 
+    def test_IDictable(self):
+        verifyObject(IDictable, Ore())
+
+
     def test_ILocatable(self):
         verifyObject(ILocatable, Ore())
 
 
 
 class ToolTest(TestCase):
+
+
+    def test_IDictable(self):
+        verifyObject(IDictable, Tool('foo'))
 
 
     def test_attributes(self):
@@ -265,6 +287,10 @@ class ToolTest(TestCase):
 
 
 class LifesourceTest(TestCase):
+
+
+    def test_IDictable(self):
+        verifyObject(IDictable, Lifesource())
 
 
     def test_emit(self):
@@ -483,6 +509,10 @@ class BotTest(TestCase):
         self.assertNotEqual(b.id, None)
 
 
+    def test_IDictable(self):
+        verifyObject(IDictable, Bot(None, None))
+
+
     def test_ILocatable(self):
         verifyObject(ILocatable, Bot(None, None))
 
@@ -614,6 +644,9 @@ class BotTest(TestCase):
         self.assertRaises(NotOnSquare, b.heal, None, 3)
         self.assertRaises(NotOnSquare, b.makeTool, None, None)
         self.assertRaises(NotOnSquare, b.openPortal, 'hey')
+        self.assertRaises(NotOnSquare, b.breakLock, None)
+        self.assertRaises(NotOnSquare, b.addLock, None)
+        self.assertRaises(NotOnSquare, b.move, None)
 
         self.assertEqual(b.emit.call_count, 0, str(b.emit.call_args))
 
@@ -1110,6 +1143,15 @@ class BotTest(TestCase):
         self.assertRaises(NotAllowed, bot.addLock, pylon)
 
 
+    def test_move(self):
+        """
+        Bot's can move to different squares.
+        """
+        bot = self.mkBot(real_square=True)
+        square2 = Square(MagicMock())
+        bot.move(square2)
+        self.assertEqual(bot.square, square2)
+
 
 
 class EnergyTest(TestCase):
@@ -1197,6 +1239,21 @@ class BoardTest(TestCase):
         board = Board()
         board.addSquare((0, 0))
         self.assertRaises(NotAllowed, board.addSquare, (0,0))
+
+
+    def test_squareFromId(self):
+        """
+        You can get to a Square by its id.
+        """
+        board = Board()
+
+        square = board.addSquare((0,0))
+        self.assertEqual(board.squareFromId(square.id), square)
+
+
+    def test_squareFromId_NotFound(self):
+        board = Board()
+        self.assertRaises(NotFound, board.squareFromId, 'foo')
 
 
     def test_adjacentSquares(self):

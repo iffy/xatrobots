@@ -109,5 +109,6 @@ class WorkMakerTest(TestCase):
         maker = WorkMaker()
         work = maker.getWork(1, 1000000)
         self.assertEqual(maker.isResult(work, 'hey'), False)
+        self.assertEqual(maker.isResult(work, None), False)
 
 

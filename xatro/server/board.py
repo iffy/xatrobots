@@ -5,7 +5,9 @@ Board and Square and such.
 from twisted.internet import defer
 from zope.interface import implements
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
+from xatro.server.interface import IDictable
 from xatro.server.event import Event
+from xatro.error import NotFound
 
 from hashlib import sha1
 
@@ -80,6 +82,7 @@ class Board(object):
     def __init__(self, game=None):
         self.game = game
         self.squares = {}
+        self._squares_by_id = {}
         self.bots = {}
 
 
@@ -104,10 +107,21 @@ class Board(object):
 
         square = Square(self)
         self.squares[coord] = square
+        self._squares_by_id[square.id] = square
         square.coordinates = coord
 
         self.eventReceived(Event(self, 'square_added', square))
         return square
+
+
+    def squareFromId(self, id):
+        """
+        Find a square by its id.
+        """
+        try:
+            return self._squares_by_id[id]
+        except:
+            raise NotFound(id)
 
 
     def adjacentSquares(self, square):
@@ -142,16 +156,11 @@ class Square(object):
 
     @ivar id: My id
     @ivar board: L{Board} instance.
-    @ivar pylon: L{Pylon} instance.
-    @ivar bots: Dictionary of bots in this square.
-    @ivar materials: Dictionary of materials in this square.
     """
 
-    implements(IEventReceiver)
+    implements(IEventReceiver, IDictable)
 
     board = None
-    events = None
-    pylon = None
     coordinates = None
 
 
@@ -159,6 +168,16 @@ class Square(object):
         self.id = str(uuid4())
         self.board = board
         self._contents = {}
+
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'object': 'square',
+            'coordinates': self.coordinates,
+            'contents': [x.id for x in self.contents()],
+            'adjacent_squares': [x.id for x in self.board.adjacentSquares(self)]
+        }
 
 
     def eventReceived(self, event):
@@ -791,6 +810,7 @@ class Bot(object):
         tool.lifesource = ls
 
 
+    @requireSquare
     def breakLock(self, pylon):
         """
         Break a lock on a pylon.
@@ -805,6 +825,7 @@ class Bot(object):
             self.emit(Event(self, 'pylon_captured', pylon))
 
 
+    @requireSquare
     def addLock(self, pylon):
         """
         Add a lock to a pylon.
@@ -813,6 +834,14 @@ class Bot(object):
 
         pylon.locks += 1
         self.emit(Event(self, 'lock_added', pylon))
+
+
+    @requireSquare
+    def move(self, square):
+        """
+        Move the bot to the next square.
+        """
+        square.addThing(self)
 
 
 

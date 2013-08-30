@@ -1,6 +1,6 @@
 from zope.interface import implements
 from xatro.server.interface import IGameRules
-from xatro.work import WorkMaker
+from xatro.work import WorkMaker, InvalidSolution
 from xatro.server.board import Pylon
 
 
@@ -46,6 +46,7 @@ class StaticRules(object):
 
 
     def __init__(self):
+        self._solution_checker = WorkMaker()
         self.charge_work_maker = WorkMaker()
         self.addLock_work_maker = WorkMaker()
         self.breakLock_work_maker = WorkMaker()
@@ -65,6 +66,14 @@ class StaticRules(object):
             2: 3,
             3: 6,
         }
+
+
+    def assertSolution(self, proposed_solution, work):
+        """
+        XXX
+        """
+        if not self._solution_checker.isResult(work, proposed_solution):
+            raise InvalidSolution(work)
 
 
     def energyRequirement(self, bot, action, *args, **kwargs):

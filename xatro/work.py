@@ -6,6 +6,9 @@ from hashlib import sha1
 Work = namedtuple('Work', ['goal', 'nonce'])
 
 
+class InvalidSolution(Exception): pass
+
+
 
 class WorkMaker(object):
     """
@@ -56,7 +59,10 @@ class WorkMaker(object):
 
         @return: C{True} if it's acceptable, else C{False}
         """
-        return self._validAnswer(work.nonce, work.goal, result)
+        try:
+            return self._validAnswer(work.nonce, work.goal, result)
+        except:
+            return False
 
 
     def _validAnswer(self, nonce, goal, answer):

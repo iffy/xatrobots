@@ -7,7 +7,8 @@ from xatro.server.event import Event
 from xatro.server.game import GameShell, StaticRules
 from xatro.server.board import Bot, Pylon
 from xatro.server.interface import IGameRules
-from xatro.work import WorkMaker, Work
+from xatro.work import WorkMaker, Work, InvalidSolution
+from xatro.test.test_work import findResult
 
 
 
@@ -31,6 +32,31 @@ class StaticRulesTest(TestCase):
 
     def test_IGameRules(self):
         verifyObject(IGameRules, StaticRules())
+
+
+    def test_assertSolution_good(self):
+        """
+        A good solution won't cause a problem.
+        """
+        rules = StaticRules()
+
+        maker = WorkMaker()
+        work = maker.getWork()
+        
+        result = findResult(work.nonce, work.goal)
+        rules.assertSolution(result, work)
+
+
+    def test_assertSolution_bad(self):
+        """
+        A bad solution will raise an exception.
+        """
+        rules = StaticRules()
+
+        maker = WorkMaker()
+        work = maker.getWork()
+        self.assertRaises(InvalidSolution, rules.assertSolution, '', work)
+        self.assertRaises(InvalidSolution, rules.assertSolution, None, work)
 
 
     def test_energyRequirement_default(self):

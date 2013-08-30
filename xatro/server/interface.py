@@ -68,7 +68,14 @@ class IWorkMaker(Interface):
         """
 
 
+
 class IGameRules(IEventReceiver):
+
+
+    def assertSolution(solution, work):
+        """
+        Assert that the given solution solves the work requirement.
+        """
 
 
     def workRequirement(bot, action, *args, **kwargs):
@@ -103,6 +110,15 @@ class IGamePiece(Interface):
 
 
     game = Attribute("Reference to the game")
+
+
+class IDictable(Interface):
+
+
+    def toDict(self):
+        """
+        Convert this object into a dictionary representation.
+        """
 
 
 
