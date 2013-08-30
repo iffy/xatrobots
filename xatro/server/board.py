@@ -132,17 +132,52 @@ class Pylon(object):
     @ivar team: Team name that owns me
     @type team: str
 
-    @ivar unlock_work: The L{Work} required to unlock the next lock.
-    @ivar lock_work: The L{Work} required to add another lock.
+    @ivar tobreak: The L{Work} required to break the next lock.
+    @ivar tolock: The L{Work} required to add another lock.
     """
 
-    square = None
-    team = None
-    unlock_work = None
-    lock_work = None
+    implements(ILocatable)
 
-    def __init__(self, locks):
-        self.locks = locks
+    square = None
+    locks = 3
+    team = None
+    tobreak = None
+    tolock = None
+
+    def __init__(self):
+        self.id = str(uuid4())
+
+
+    def emit(self, event):
+        """
+        Emit an event to my containing Square.
+        """
+        if self.square:
+            self.square.eventReceived(event)
+
+
+    def setLocks(self, number):
+        """
+        Set the number of locks on me.
+        """
+        self.locks = number
+        self.emit(Event(self, 'pylon.locks', number))
+
+
+    def setLockWork(self, work):
+        """
+        Set the work required to add another lock to this Pylon.
+        """
+        self.tolock = work
+        self.emit(Event(self, 'pylon.tolock', work))
+
+
+    def setBreakLockWork(self, work):
+        """
+        Set the work required to break the next lock.
+        """
+        self.tobreak = work
+        self.emit(Event(self, 'pylon.tobreak', work))
 
 
 
@@ -537,7 +572,11 @@ class Bot(object):
         @type bot: L{Bot}
         
         @raise NotEnoughEnergy: If I don't have that much energy.
+        @raise NotAllowed: If the other bot isn't in the same square.
         """
+        if self.square is None or self.square != bot.square:
+            raise NotAllowed("Not on the same square")
+
         if amount > len(self.energy_pool):
             raise NotEnoughEnergy()
 

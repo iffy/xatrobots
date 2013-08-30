@@ -135,17 +135,71 @@ class SquareTest(TestCase):
 class PylonTest(TestCase):
 
 
+    def test_ILocatable(self):
+        verifyObject(ILocatable, Pylon())
+
+
     def test_attributes(self):
         """
         A Pylon should belong to a team, have locks and the work required to
         unlock the lock.
         """
-        p = Pylon(3)
+        p = Pylon()
         self.assertEqual(p.square, None)
-        self.assertEqual(p.locks, 3)
         self.assertEqual(p.team, None)
-        self.assertEqual(p.unlock_work, None)
-        self.assertEqual(p.lock_work, None)
+        self.assertEqual(p.tobreak, None)
+        self.assertEqual(p.tolock, None)
+
+
+    def test_emit(self):
+        """
+        Emitting should send the event to the containing Square.
+        """
+        p = Pylon()
+        p.square = MagicMock()
+        p.emit('foo')
+        p.square.eventReceived.assert_called_once_with('foo')
+
+
+    def test_emit_noSquare(self):
+        """
+        Emitting with no square is a nop
+        """
+        p = Pylon()
+        p.emit('foo')
+
+
+    def test_setLocks(self):
+        """
+        You can set the number of locks on a Pylon
+        """
+        p = Pylon()
+        p.emit = create_autospec(p.emit)
+        p.setLocks(6)
+        p.emit.assert_called_once_with(Event(p, 'pylon.locks', 6))
+        self.assertEqual(p.locks, 6)
+        
+
+    def test_setLockWork(self):
+        """
+        You can set the Work required to lock a Pylon
+        """
+        p = Pylon()
+        p.emit = create_autospec(p.emit)
+        p.setLockWork('foo')
+        p.emit.assert_called_once_with(Event(p, 'pylon.tolock', 'foo'))
+        self.assertEqual(p.tolock, 'foo')
+
+
+    def test_setBreakLockWork(self):
+        """
+        You can set the Work required to unlock a Pylon
+        """
+        p = Pylon()
+        p.emit = create_autospec(p.emit)
+        p.setBreakLockWork('bar')
+        p.emit.assert_called_once_with(Event(p, 'pylon.tobreak', 'bar'))
+        self.assertEqual(p.tobreak, 'bar')
 
 
 
@@ -527,6 +581,7 @@ class BotTest(TestCase):
         b1.square = MagicMock()
         b2 = Bot('foo', 'jim')
         b2.emit = create_autospec(b2.emit)
+        b2.square = b1.square
 
         b1.charge()
         b1.shareEnergy(1, b2)
@@ -658,11 +713,13 @@ class BotTest(TestCase):
         A bot can share energy with other bots.
         """
         bot1 = Bot('foo', 'bob')
+        bot1.square = MagicMock()
         bot1.charge()
         bot1.emit = create_autospec(bot1.emit)
         e = bot1.generated_energy
 
         bot2 = Bot('foo', 'hey')
+        bot2.square = bot1.square
         bot2.receiveEnergies = create_autospec(bot2.receiveEnergies)
 
         bot1.shareEnergy(1, bot2)
@@ -676,10 +733,29 @@ class BotTest(TestCase):
         An error is raised if you try to share energy that you don't have.
         """
         bot1 = Bot('foo', 'bob')
+        bot1.square = MagicMock()
         bot1.charge()
 
         bot2 = Bot('foo', 'jim')
+        bot2.square = bot1.square
         self.assertRaises(NotEnoughEnergy, bot1.shareEnergy, 2, bot2)
+
+
+    def test_shareEnergy_sameSquare(self):
+        """
+        A bot can only share energy with another bot on the same square,
+        and it can't be a None square.
+        """
+        bot1 = Bot('foo', 'bob')
+        bot1.charge()
+
+        bot2 = Bot('foo', 'hey')
+        
+        self.assertRaises(NotAllowed, bot1.shareEnergy, 1, bot2)
+
+        bot1.square = 'something'
+        bot2.square = 'another'
+        self.assertRaises(NotAllowed, bot1.shareEnergy, 1, bot2)
 
 
     def test_equip(self):
