@@ -810,6 +810,7 @@ class BotTest(TestCase):
         """
         bot1 = self.mkBot()
         bot2 = self.mkBot()
+        bot2.square = bot1.square
 
         bot1.equip(Tool('cannon'))
         bot1.emit.reset_mock()
@@ -831,6 +832,19 @@ class BotTest(TestCase):
 
         bot1.tool = Tool('cat')
         self.assertRaises(LackingTool, bot1.shoot, bot2, 2)
+
+
+    def test_shoot_sameSquare(self):
+        """
+        You must be on the same square as the thing you're shooting.
+        """
+        bot1 = self.mkBot()
+        bot1.charge()
+        bot1.tool = Tool('cannon')
+        
+        bot2 = self.mkBot()
+
+        self.assertRaises(NotAllowed, bot1.shoot, bot2, 1)
 
 
     def test_heal(self):
@@ -865,6 +879,19 @@ class BotTest(TestCase):
         self.assertRaises(LackingTool, bot1.heal, bot2, 2)
 
 
+    def test_heal_sameSquare(self):
+        """
+        You must be on the same square as the thing you're healing.
+        """
+        bot1 = self.mkBot()
+        bot1.charge()
+        bot1.tool = Tool('repair kit')
+        
+        bot2 = self.mkBot()
+
+        self.assertRaises(NotAllowed, bot1.heal, bot2, 1)
+
+
     def test_makeTool(self):
         """
         You can turn ore into a tool.
@@ -890,6 +917,18 @@ class BotTest(TestCase):
         self.assertTrue(isinstance(ls, Lifesource), ls)
         self.assertEqual(ls.other, tool)
         self.assertEqual(tool.lifesource, ls)
+
+
+    def test_makeTool_sameSquare(self):
+        """
+        You must be on the same square as the ore to make a tool.
+        """
+        b = self.mkBot()
+        ore = Ore()
+        self.assertRaises(NotAllowed, b.makeTool, ore, 'yeti')
+
+        ore.square = 'foo'
+        self.assertRaises(NotAllowed, b.makeTool, ore, 'cow')
 
 
     def test_openPortal(self):

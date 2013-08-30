@@ -405,6 +405,14 @@ class Bot(object):
         self._destruction_broadcaster = DeferredBroadcaster()
 
 
+    def _requireSameSquare(self, other):
+        """
+        @raise NotAllowed: If the other thing isn't on the same square as me.
+        """
+        if self.square is None or self.square != other.square:
+            raise NotAllowed("Not on the same square")
+
+
     def eventReceived(self, event):
         """
         Called when I receive an event (typically from the L{Square}).  This
@@ -576,8 +584,7 @@ class Bot(object):
         @raise NotEnoughEnergy: If I don't have that much energy.
         @raise NotAllowed: If the other bot isn't in the same square.
         """
-        if self.square is None or self.square != bot.square:
-            raise NotAllowed("Not on the same square")
+        self._requireSameSquare(bot)
 
         if amount > len(self.energy_pool):
             raise NotEnoughEnergy()
@@ -617,6 +624,8 @@ class Bot(object):
         @param damage: Amount of damage to do.
         @type damage: int
         """
+        self._requireSameSquare(what)
+        
         self.emit(Event(self, 'shot', what))
         what.damage(damage)
 
@@ -631,6 +640,8 @@ class Bot(object):
         @param amount: Amount of hitpoints to give.
         @type amount: int
         """
+        self._requireSameSquare(what)
+
         self.emit(Event(self, 'healed', what))
         what.revive(amount)
 
@@ -667,6 +678,8 @@ class Bot(object):
         """
         Make a tool out of some ore.
         """
+        self._requireSameSquare(ore)
+
         tool = Tool(kind)
         self.emit(Event(self, 'made', tool))
         self.equip(tool)
