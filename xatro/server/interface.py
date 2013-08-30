@@ -52,14 +52,6 @@ class ILocatable(Interface):
     square = Attribute("Square thing is in")
 
 
-class IGameAware(Interface):
-
-
-    def onGame(func, *args, **kwargs):
-        """
-        Runs a function on the Game.
-        """
-
 
 class IWorkMaker(Interface):
 

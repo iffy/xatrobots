@@ -5,7 +5,6 @@ from zope.interface.verify import verifyObject
 from mock import MagicMock, create_autospec
 
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
-from xatro.server.interface import IGameAware
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool, Board, Coord
@@ -26,21 +25,6 @@ class SquareTest(TestCase):
         self.assertEqual(q.contents(), [])
         self.assertEqual(q.pylon, None)
         self.assertNotEqual(q.id, None)
-
-
-    def test_IGameAware(self):
-        verifyObject(IGameAware, Square(None))
-
-
-    def test_onGame(self):
-        """
-        Should call onGame on the Board.
-        """
-        q = Square(MagicMock())
-        q.board.onGame.return_value = 'foo'
-        r = q.onGame('func', 'arg', keyword='arg')
-        q.board.onGame.assert_called_once_with('func', 'arg', keyword='arg')
-        self.assertEqual(r, 'foo')
 
 
     def test_IEventReceiver(self):
@@ -1209,22 +1193,6 @@ class BoardTest(TestCase):
         """
         board = Board()
         board.eventReceived('foo')
-
-
-    def test_IGameAware(self):
-        verifyObject(IGameAware, Board())
-
-
-    def test_onGame(self):
-        """
-        Should call onGame on the Game.
-        """
-        game = MagicMock()
-        board = Board(game)
-        game.onGame.return_value = 'hey'
-        r = board.onGame('func', 'arg', keyword='arg')
-        game.onGame.assert_called_once_with('func', 'arg', keyword='arg')
-        self.assertEqual(r, 'hey')
 
 
     def test_addSquare(self):
