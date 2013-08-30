@@ -68,10 +68,12 @@ which may influence the decision.
 During this phase, the following commands are available to bots:
 
 - `listSquares()` -> `[<Square>, <Square>, ...]`
+  
   List the Squares that make up the board.  Among other things, it will
   show much Ore is in each Square.
    
 - `workToLand(square_id)` -> `(nonce, goal)`
+  
   Return the goal portion of the work that will be required to land on this
   square during the Landing Phase.  During this phase `nonce` will always
   be `null`.
@@ -91,10 +93,12 @@ In addition to the `listSquares()` command also available during the Pre-Game
 Phase, the following commands are available to bots:
 
 - `workToLand(square_id)` -> `(nonce, goal)`
+  
   Same as in Pre-Game Phase except `nonce` is now a `string` that can be
   used to do work.
 
 - `land(square_id, solution)`
+  
   Put the bot on the designated square.  `solution` must be a solution to the
   problem returned by `workToLand`.
 
@@ -108,31 +112,37 @@ in the Landing Phase until they have successfully landed a bot in a square.
 
 When a bot is in play, the following commands are available:
 
+
 - `status(bot=None)` -> `<bot>`
+  
   Requires 0 energy if bot=None, otherwise requires 1 energy.
 
   If `bot` is None return status of self, otherwise, `bot` should be the
   id of a `bot` in this square.
 
-    {
-        'team': string,
-        'health': integer,
-        'energy': integer,
-        'equipment': string,
-    }
+      {
+          'team': string,
+          'health': integer,
+          'energy': integer,
+          'equipment': string,
+      }
+
 
 - `charger()` -> dict
+  
   Requires 0 energy.
 
   Once the charger is available, returns a mapping of work to be done to
   generate energy with `charge()`
             
-    {'d': 10, 'S': 100, 'n': 'foo'}
+      {'d': 10, 'S': 100, 'n': 'foo'}
 
   The charger will not be available until the energy produced by the
   charger is used.
 
+
 - `charge(solution)`
+  
   Produces 1 energy.
 
   `solution` is an acceptable solution of doing the work identified by
@@ -140,30 +150,34 @@ When a bot is in play, the following commands are available:
 
 
 - `look()` -> list of things in the square
+  
   Requires 1 energy.
 
   Returns a dict of all the things in the square, including bots and
   ore.  It looks like this:
 
-    {
-        'jim': <bot dict>,
-        'bob': <bot dict>,
-        'o-1': <ore dict>,
-    }
+      {
+          'jim': <bot dict>,
+          'bob': <bot dict>,
+          'o-1': <ore dict>,
+      }
 
 
 - `pylon()` -> dict
+  
   Requires 1 energy.
 
   Returns a dict describing the current square's pylon:
 
-    {
-        'team': None,
-        'locks': 1,
-        'capture_work': {'d': 10, 'S': 100, 'n': 'foo'},
-    }
+      {
+          'team': None,
+          'locks': 1,
+          'capture_work': {'d': 10, 'S': 100, 'n': 'foo'},
+      }
+
 
 - `breakLock(solution)`
+  
   Requires 3 energy.
 
   `solution` is the solution of doing the work defined by
@@ -173,7 +187,9 @@ When a bot is in play, the following commands are available:
   of locks to 0, then this bot's team takes control of the pylon and it
   receives 3 locks.
 
+
 - `makeTool(ore, tool_type)`
+  
   Requires 1 energy.
 
   Convert the ore into a tool and equip it.  `tool_type` can be
@@ -183,12 +199,15 @@ When a bot is in play, the following commands are available:
 
 
 - `move(square_id)`
+  
   Requires 2 energy.
 
   Moves the bot to the identified square (if it is adjacent and the bot
   has enough energy).
 
+
 - `heal(what, amount)`
+  
   Requires energy proportional to the amount you want to heal.
 
   1 health requires 1 energy
@@ -197,7 +216,9 @@ When a bot is in play, the following commands are available:
 
   This bot must have a 'repair kit' tool.
 
+
 - `shoot(what, damage)`
+
   Requires energy proportional to the amount of damage you want to do.
 
   1 damage requires 1 energy
@@ -206,14 +227,18 @@ When a bot is in play, the following commands are available:
 
   This bot must have a 'cannon' tool.
 
+
 - `openPortal(password)`
+
   Requires 1 energy.
 
   This bot must have a 'portal' tool.
 
   Open a portal so that an On-Deck bot can use it.
 
+
 - `shareEnergy(who, amount)`
+
   Lend energy to another bot in this square.
 
   The chargers used to generate the energy will not be replenished until
@@ -228,6 +253,7 @@ in the On-Deck Phase, waiting for a portal to be provisioned for them.  When
 in this phase, bots can do the following:
 
 - `usePortal(bot, password)`
+
   Land the bot on the ground and link them to the portal held open by
   `bot`.  `password` is the password `bot` used when opening the portal.
 
@@ -255,18 +281,20 @@ locking pylons also require work.
 
 A piece of work is defined by a `nonce` and a `goal`:
 
-`nonce` or `n`
-    a byte string of some non-zero length
+1. `nonce` or `n`
 
-`goal` or `G`
-    an integer between 0 (easiest) and `MAX_SHA` (hardest).  `MAX_SHA`
-    is `0xffffffffffffffffffffffffffffffffffffffff` by default.
+   a byte string of some non-zero length
+
+2. `goal` or `G`
+
+   an integer between 0 (easiest) and `MAX_SHA` (hardest).  `MAX_SHA`
+   is `0xffffffffffffffffffffffffffffffffffffffff` by default.
 
 
 The result of a piece of work is any byte string `R` which satisfies this
 equation:
 
-    int(sha1(n + R)) > G
+    int( sha1( n + R ) ) > G
 
 Here is a Python function that will determine if a given `R` is an acceptable
 result:
