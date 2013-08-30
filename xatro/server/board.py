@@ -388,7 +388,8 @@ class Bot(object):
         consumed yet).  This may have been shared with another L{Bot} and so
         won't be found in my C{energy_pool}.
 
-    @ivar charging_work: The L{Work} required to charge.
+    @ivar charging_work: The L{Work} required to charge.  This will be C{None}
+        if I'm currently not allowed to charge.
     
     @ivar event_receiver: A function that will be called with every L{Event}
         I see.
@@ -530,6 +531,8 @@ class Bot(object):
     def canCharge(self):
         """
         Return a C{Deferred} which will fire when I'm allowed to charge again.
+
+        @return: A C{Deferred} which will fire with a L{Work} instance.
         """
         if self.charging_work:
             # asked before and you can charge now
