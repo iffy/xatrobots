@@ -172,24 +172,13 @@ When a bot is in play, the following commands are available:
 
         Returns a dict describing the current square's pylon (same as `pylon()`)
 
-
-
-    convertToCannon(ore)
+    makeTool(ore, tool_type)
         Requires 1 energy.
 
-        Convert the ore into a cannon and equip it.
-
-    convertToRepairKit(ore)
-        Requires 1 energy.
-
-        Convert the ore into a repair kit and equip it.
-
-    convertToPortal(material) -> portal_key
-        Requires 1 energy.
-
-        Convert the ore into a bot portal.  Another bot on your team can
-        then enter the game through the portal (by using the `portal_key`).
-
+        Convert the ore into a tool and equip it.  `tool_type` can be
+        'cannon', 'repair kit' or 'portal.'  (Well, it could be any
+        string you want, but only those strings will result in useful
+        tools.)
 
 
     move(coordinate)
@@ -198,23 +187,30 @@ When a bot is in play, the following commands are available:
         Moves the bot to the identified square (if it is adjacent and the bot
         has enough energy).
 
-    heal(what, name, amount)
+    heal(what, amount)
         Requires energy proportional to the amount you want to heal.
 
         1 health requires 1 energy
         3 health requires 2 energy
         6 health requires 3 energy
 
-        This bot must have a repair kit.
+        This bot must have a 'repair kit' tool.
 
-    shoot(what, name, damage)
+    shoot(what, damage)
         Requires energy proportional to the amount of damage you want to do.
 
         1 damage requires 1 energy
         3 damage requires 2 energy
         6 damage requires 3 energy
 
-        This bot must have a cannon.
+        This bot must have a 'cannon' tool.
+
+    openPortal(password):
+        Requires 1 energy.
+
+        This bot must have a 'portal' tool.
+
+        Open a portal so that an On-Deck bot can use it.
 
     shareEnergy(who, amount)
         Lend energy to another bot in this square.
@@ -230,9 +226,11 @@ Bots who connect to the game after the captain has landed on the board will be
 in the On-Deck Phase, waiting for a portal to be provisioned for them.  When
 in this phase, bots can do the following:
 
-    usePortal(portal_key)
-        Land the bot on the ground and link them to the given portal.  Once
-        they land, they will be in the Play Phase.
+    usePortal(bot, password)
+        Land the bot on the ground and link them to the portal held open by
+        `bot`.  `password` is the password `bot` used when opening the portal.
+
+Once a bot lands, they will be in the Play Phase.
 
 
 
@@ -244,7 +242,8 @@ destroy the associated tool.  If a portal is destroyed, the bot that landed
 with that portal will die.
 
 Likewise, if a bot carrying a tool dies, the life source used to make the tool
-and the portal used to land the bot with both "die" and revert back to ore.
+and the portal used to land the bot will both be destroyed and revert back to
+ore.
 
 
 Work
