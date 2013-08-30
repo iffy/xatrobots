@@ -181,6 +181,22 @@ class StaticRulesTest(TestCase):
         bot.setHitpoints.assert_called_once_with(30)
 
 
+    def test_eventReceived_e_gone(self):
+        """
+        When a bot's energy is gone, give them new charging_work.
+        """
+        bot = Bot('foo', 'bar')
+
+        rules = StaticRules()
+        rules.charge_work_maker.scale = 89
+
+        rules.eventReceived(Event(bot, 'e_gone', None))
+        self.assertTrue(isinstance(bot.charging_work, Work), "Should set "
+                        "charging_work to Work")
+        self.assertEqual(bot.charging_work.goal,
+                         rules.charge_work_maker.getWork().goal)
+
+
     def test_energyToHitpoints(self):
         """
         Energy to hitpoints should follow this scale

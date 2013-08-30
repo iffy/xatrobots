@@ -10,7 +10,7 @@ from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool, Board, Coord
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 from xatro.server.board import NotOnSquare, LackingTool, NotAllowed
-from xatro.work import Work
+
 
 
 class SquareTest(TestCase):
@@ -700,64 +700,6 @@ class BotTest(TestCase):
         b.charge()
 
 
-    def test_canCharge_set_charging_work(self):
-        """
-        Calling canCharge will set charging_work by asking the square what
-        the work is.
-        """
-        b = self.mkBot()
-        b.square.workFor.return_value = Work('foo', 'bar')
-
-        # initial request
-        res = self.successResultOf(b.canCharge())
-        b.square.workFor.assert_called_once_with(b, 'charge', None)
-        self.assertEqual(res, Work('foo', 'bar'), "Should return the Work")
-        self.assertEqual(b.charging_work, res)
-
-        # second request before doing the work
-        b.square.workFor.reset_mock()
-        res = self.successResultOf(b.canCharge())
-        self.assertEqual(b.square.workFor.call_count, 0, "Should not have "
-                         "gone to the square for the work again")
-        self.assertEqual(res, Work('foo', 'bar'), "Should return the Work")
-
-        # charge
-        b.charge()
-        self.assertEqual(b.charging_work, None, "Should unset charging_work")
-        r = b.canCharge()
-        self.assertEqual(r.called, False)
-
-        # consume energy to trigger canCharge
-        b.consumeEnergy(1)
-        b.square.workFor.assert_called_once_with(b, 'charge', None)
-        res = self.successResultOf(r)
-        self.assertEqual(res, Work('foo', 'bar'))
-        self.assertEqual(b.charging_work, res)
-
-
-    def test_canCharge_sameAnswers(self):
-        """
-        Asking canCharge should result in the same answer for two callers
-        at every stage.
-        """
-        bot = self.mkBot()
-        from uuid import uuid4
-        def workFor(*args):
-            return uuid4()
-        bot.square.workFor.side_effect = workFor
-
-        bot.charge()
-        a = bot.canCharge()
-        b = bot.canCharge()
-        bot.consumeEnergy(1)
-        a = self.successResultOf(a)
-        b = self.successResultOf(b)
-        self.assertEqual(a, b,
-                         "canCharge() called while waiting for energy "
-                         "consumption should result in same value")
-        self.assertEqual(a, bot.charging_work)
-
-
     def test_canCharge(self):
         """
         An uncharged bot can charge.
@@ -776,6 +718,19 @@ class BotTest(TestCase):
         self.assertEqual(d.called, False)
         b.consumeEnergy(1)
         self.assertEqual(d.called, True)
+
+
+    def test_eventWhenEnergyGone(self):
+        """
+        However a bot's energy is used, an event should be emitted that
+        indicates the energy is gone.
+        """
+        b = self.mkBot()
+        b.charge()
+        b.emit.reset_mock()
+
+        b.consumeEnergy(1)
+        b.emit.assert_any_call(Event(b, 'e_gone', None))
 
 
     def test_receiveEnergies(self):
@@ -1233,7 +1188,15 @@ class BoardTest(TestCase):
         self.assertEqual(len(board.squares), 1)
         self.assertEqual(square.coordinates, Coord(0,0))
         self.assertEqual(board.squares[Coord(0,0)], square)
-        
+
+
+    def test_addSquare_conflict(self):
+        """
+        It should cause an error to add a square at the same location twice.
+        """
+        board = Board()
+        board.addSquare((0, 0))
+        self.assertRaises(NotAllowed, board.addSquare, (0,0))
 
 
     def test_adjacentSquares(self):
@@ -1268,6 +1231,42 @@ class BoardTest(TestCase):
                          "not\n\n%r\n" % (coord,
                          [x.coordinates for x in expected_squares],
                          [x.coordinates for x in actual]))
+
+
+    def test_addBot(self):
+        """
+        Bots can join the game, which causes a joined event to happen.  The
+        bots are then in noman's land until they leave.
+        """
+        board = Board()
+        board.eventReceived = create_autospec(board.eventReceived)
+        self.assertEqual(len(board.bots), 0)
+        bot = Bot('foo', 'bar')
+
+        board.addBot(bot)
+        board.eventReceived.assert_called_once_with(Event(bot, 'joined', board))
+        self.assertEqual(len(board.bots), 1)
+
+
+    def test_removeBot(self):
+        """
+        Bots can leave the game, which causes a leaving event.
+        """
+        board = Board()
+        board.eventReceived = create_autospec(board.eventReceived)
+        self.assertEqual(len(board.bots), 0)
+        bot = Bot('foo', 'bar')
+        board.addBot(bot)
+
+        board.eventReceived.reset_mock()
+        board.removeBot(bot)
+        board.eventReceived.assert_called_once_with(Event(bot, 'quit', board))
+        self.assertEqual(len(board.bots), 0)
+
+
+
+
+
         
 
 

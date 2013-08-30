@@ -80,11 +80,12 @@ class Board(object):
     def __init__(self, game=None):
         self.game = game
         self.squares = {}
+        self.bots = {}
 
 
     def eventReceived(self, event):
         """
-        XXX
+        Called when I receive an event.
         """
         if self.game:
             self.game.eventReceived(event)
@@ -92,8 +93,15 @@ class Board(object):
 
     def addSquare(self, coord):
         """
-        XXX
+        Add a square to me for the given coordinates.
+
+        @param coord: A tuple (x,y).
+
+        @raise NotAllowed: If the coordinate is already occupied by a square.
         """
+        if coord in self.squares:
+            raise NotAllowed('%r is already occupied' % (coord,))
+
         square = Square(self)
         self.squares[coord] = square
         square.coordinates = coord
@@ -104,11 +112,27 @@ class Board(object):
 
     def adjacentSquares(self, square):
         """
-        XXX
+        Return the list of squares that are adjacent to the given square.
         """
         x,y = square.coordinates
         poss = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
         return [self.squares[c] for c in poss if c in self.squares]
+
+
+    def addBot(self, bot):
+        """
+        Called to indicate that the bot has joined the game.
+        """
+        self.bots[bot.id] = bot
+        self.eventReceived(Event(bot, 'joined', self))
+
+
+    def removeBot(self, bot):
+        """
+        Called to indicate that the bot has quit the game.
+        """
+        self.bots.pop(bot.id)
+        self.eventReceived(Event(bot, 'quit', self))
 
 
 
@@ -579,7 +603,6 @@ class Bot(object):
             raise EnergyNotConsumedYet()
 
         self.generated_energy = Energy()
-        self.charging_work = None
         self.emit(Event(self, 'charged', None))
 
         self.receiveEnergies([self.generated_energy])
@@ -591,28 +614,11 @@ class Bot(object):
         """
         Return a C{Deferred} which will fire when I'm allowed to charge again.
 
-        @return: A C{Deferred} which will fire with a L{Work} instance.
+        @return: A C{Deferred} which will fire once I can charge again.
         """
-        if self.charging_work:
-            # asked before and you can charge now
-            return defer.succeed(self.charging_work)
-        elif self.generated_energy:
-            # waiting on energy to be consumed
-            d = self.generated_energy.done()
-            return d.addCallback(lambda x:self._getChargingWork())
-        else:
-            # first time asking
-            return defer.succeed(self._getChargingWork())
-    
-
-    def _getChargingWork(self):
-        """
-        XXX
-        """
-        if self.charging_work:
-            return self.charging_work
-        self.charging_work = self.square.workFor(self, 'charge', None)
-        return self.charging_work
+        if self.generated_energy:
+            return self.generated_energy.done()
+        return defer.succeed(None)
 
 
     def _myEnergyConsumed(self, result):
@@ -620,6 +626,7 @@ class Bot(object):
         Called when an energy I produced was consumed or wasted in some way.
         """
         self.generated_energy = None
+        self.emit(Event(self, 'e_gone', None))
 
 
     @requireSquare
