@@ -66,3 +66,43 @@ class IWorkMaker(Interface):
         """
         Return C{True} if the solution is a valid one for the work.
         """
+
+
+class IGameRules(IEventReceiver):
+
+
+    def workRequirement(bot, action, *args, **kwargs):
+        """
+        Return the L{Work} required before a bot can perform the given action.
+
+        @rtype: L{Work}
+        """
+
+
+    def energyRequirement(bot, action, *args, **kwargs):
+        """
+        Return the amount of energy that is required of a bot to perform the
+        given action.
+
+        @rtype: integer
+        """
+
+
+    def energyToHitpoints(bot, action, target, energy):
+        """
+        Return the number of hitpoints to be added/removed when a bot does
+        this action (shoot, heal) on the given target with the given amount
+        of energy.
+
+        @rtype: integer
+        """
+
+
+
+class IGamePiece(Interface):
+
+
+    game = Attribute("Reference to the game")
+
+
+

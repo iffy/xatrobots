@@ -98,7 +98,7 @@ class Board(object):
         self.squares[coord] = square
         square.coordinates = coord
 
-        self.eventReceived(Event(self, 'square.added', square))
+        self.eventReceived(Event(self, 'square_added', square))
         return square
 
 
@@ -221,7 +221,7 @@ class Pylon(object):
         Set the number of locks on me.
         """
         self.locks = number
-        self.emit(Event(self, 'pylon.locks', number))
+        self.emit(Event(self, 'pylon_locks', number))
 
 
     def setLockWork(self, work):
@@ -229,7 +229,7 @@ class Pylon(object):
         Set the work required to add another lock to this Pylon.
         """
         self.tolock = work
-        self.emit(Event(self, 'pylon.tolock', work))
+        self.emit(Event(self, 'pylon_tolock', work))
 
 
     def setBreakLockWork(self, work):
@@ -237,7 +237,7 @@ class Pylon(object):
         Set the work required to break the next lock.
         """
         self.tobreak = work
-        self.emit(Event(self, 'pylon.tobreak', work))
+        self.emit(Event(self, 'pylon_tobreak', work))
 
 
 
@@ -449,7 +449,7 @@ class Bot(object):
 
     team = None
     name = None
-    _hitpoints = 10
+    _hitpoints = None
     dead = False
     tool = None
     portal = None
@@ -557,6 +557,14 @@ class Bot(object):
         return self._hitpoints
 
 
+    def setHitpoints(self, hp):
+        """
+        Set the number of hitpoints that this bot has.
+        """
+        self._hitpoints = hp
+        self.emit(Event(self, 'hp_set', hp))
+
+
     @requireSquare
     def charge(self):
         """
@@ -624,7 +632,7 @@ class Bot(object):
         self.energy_pool.extend(energies)
         for e in energies:
             e.done().addCallback(self._sharedEnergyGone, e)
-        self.emit(Event(self, 'e.received', 1))
+        self.emit(Event(self, 'e_received', 1))
 
 
     def _sharedEnergyGone(self, reason, energy):
@@ -635,7 +643,7 @@ class Bot(object):
         # I'd rather cancel the deferred, I think
         if energy in self.energy_pool:
             self.energy_pool.remove(energy)
-            self.emit(Event(self, 'e.wasted', 1))
+            self.emit(Event(self, 'e_wasted', 1))
 
     
     @requireSquare
@@ -653,7 +661,7 @@ class Bot(object):
         for i in xrange(amount):
             e = self.energy_pool.pop()
             e.consume()
-        self.emit(Event(self, 'e.consumed', amount))
+        self.emit(Event(self, 'e_consumed', amount))
 
 
     @requireSquare
@@ -674,7 +682,7 @@ class Bot(object):
 
         energies = self.energy_pool[:amount]
         self.energy_pool = self.energy_pool[amount:]
-        self.emit(Event(self, 'e.shared', bot))
+        self.emit(Event(self, 'e_shared', bot))
         bot.receiveEnergies(energies)
 
 
@@ -736,7 +744,7 @@ class Bot(object):
         Open a portal to be used with a code.
         """
         self.tool.pw_hash = sha1(code).hexdigest()
-        self.emit(Event(self, 'portal.open', None))
+        self.emit(Event(self, 'portal_open', None))
 
 
     def usePortal(self, bot, code):
@@ -750,7 +758,7 @@ class Bot(object):
             raise NotAllowed('Incorrect password')
 
         lifesource = bot.tool.lifesource
-        self.emit(Event(self, 'portal.use', bot))
+        self.emit(Event(self, 'portal_use', bot))
         lifesource.square.addThing(self)
         lifesource.pairWith(self)
         bot.tool = None
@@ -783,11 +791,11 @@ class Bot(object):
         self._requireSameSquare(pylon)
 
         pylon.locks -= 1
-        self.emit(Event(self, 'lock.broken', pylon))
-        if pylon.locks == 0:
+        self.emit(Event(self, 'lock_broken', pylon))
+        if pylon.locks <= 0:
             pylon.team = self.team
             pylon.locks = 1
-            self.emit(Event(self, 'pylon.captured', pylon))
+            self.emit(Event(self, 'pylon_captured', pylon))
 
 
     def addLock(self, pylon):
@@ -797,7 +805,7 @@ class Bot(object):
         self._requireSameSquare(pylon)
 
         pylon.locks += 1
-        self.emit(Event(self, 'lock.added', pylon))
+        self.emit(Event(self, 'lock_added', pylon))
 
 
 

@@ -196,7 +196,7 @@ class PylonTest(TestCase):
         p = Pylon()
         p.emit = create_autospec(p.emit)
         p.setLocks(6)
-        p.emit.assert_called_once_with(Event(p, 'pylon.locks', 6))
+        p.emit.assert_called_once_with(Event(p, 'pylon_locks', 6))
         self.assertEqual(p.locks, 6)
         
 
@@ -207,7 +207,7 @@ class PylonTest(TestCase):
         p = Pylon()
         p.emit = create_autospec(p.emit)
         p.setLockWork('foo')
-        p.emit.assert_called_once_with(Event(p, 'pylon.tolock', 'foo'))
+        p.emit.assert_called_once_with(Event(p, 'pylon_tolock', 'foo'))
         self.assertEqual(p.tolock, 'foo')
 
 
@@ -218,7 +218,7 @@ class PylonTest(TestCase):
         p = Pylon()
         p.emit = create_autospec(p.emit)
         p.setBreakLockWork('bar')
-        p.emit.assert_called_once_with(Event(p, 'pylon.tobreak', 'bar'))
+        p.emit.assert_called_once_with(Event(p, 'pylon_tobreak', 'bar'))
         self.assertEqual(p.tobreak, 'bar')
 
 
@@ -471,7 +471,7 @@ class BotTest(TestCase):
         a team.
         """
         b = Bot('foo', 'bob')
-        self.assertEqual(b.hitpoints(), 10)
+        self.assertEqual(b.hitpoints(), None)
         self.assertEqual(b.energy_pool, [])
         self.assertEqual(b.generated_energy, None)
         self.assertEqual(b.charging_work, None)
@@ -531,11 +531,26 @@ class BotTest(TestCase):
         verifyObject(IKillable, Bot('foo', 'bob'))
 
 
+    def test_hitpoints(self):
+        """
+        Should return None by default, and the number if some have been given.
+        """
+        b = self.mkBot()
+        self.assertEqual(b.hitpoints(), None)
+
+        b.setHitpoints(20)
+        self.assertEqual(b.hitpoints(), 20)
+        b.emit.assert_any_call(Event(b, 'hp_set', 20))
+
+
     def test_damage(self):
         """
         Should diminish a bot's health and notify the square.
         """
         b = self.mkBot()
+        b.setHitpoints(10)
+        b.emit.reset_mock()
+
         b.damage(3)
         self.assertEqual(b.hitpoints(), 7)
         b.emit.assert_called_once_with(Event(b, 'hp', -3))
@@ -546,6 +561,9 @@ class BotTest(TestCase):
         If you damage a bot sufficiently, it is dead.
         """
         b = self.mkBot()
+        b.setHitpoints(10)
+        b.emit.reset_mock()
+
         b.damage(14)
         b.emit.assert_any_call(Event(b, 'died', None))
         self.assertEqual(b.hitpoints(), 0)
@@ -556,6 +574,9 @@ class BotTest(TestCase):
         Should increase the bot's health
         """
         b = self.mkBot()
+        b.setHitpoints(10)
+        b.emit.reset_mock()
+
         b.damage(4)
         b.emit.reset_mock()
 
@@ -626,7 +647,7 @@ class BotTest(TestCase):
         self.assertEqual(b1.generated_energy, None)
         self.assertEqual(b2.energy_pool, [], "Should remove energy from other "
                          "bot's pool")
-        b2.emit.assert_called_once_with(Event(b2, 'e.wasted', 1))
+        b2.emit.assert_called_once_with(Event(b2, 'e_wasted', 1))
 
 
     def test_kill_tool(self):
@@ -765,7 +786,7 @@ class BotTest(TestCase):
         energy = Energy()
         b.receiveEnergies([energy])
         self.assertIn(energy, b.energy_pool, "Bot should know it has it")
-        b.emit.assert_called_once_with(Event(b, 'e.received', 1))
+        b.emit.assert_called_once_with(Event(b, 'e_received', 1))
 
 
     def test_consumeEnergy(self):
@@ -781,7 +802,7 @@ class BotTest(TestCase):
         b.consumeEnergy(1)
         self.assertEqual(self.successResultOf(energy.done()), 'consumed')
         self.assertEqual(b.energy_pool, [])
-        b.emit.assert_called_once_with(Event(b, 'e.consumed', 1))
+        b.emit.assert_called_once_with(Event(b, 'e_consumed', 1))
 
 
     def test_consumeEnergy_notEnough(self):
@@ -810,7 +831,7 @@ class BotTest(TestCase):
 
         bot1.shareEnergy(1, bot2)
         bot2.receiveEnergies.assert_called_once_with([e])
-        bot1.emit.assert_any_call(Event(bot1, 'e.shared', bot2))
+        bot1.emit.assert_any_call(Event(bot1, 'e_shared', bot2))
         self.assertEqual(bot1.energy_pool, [], "Should remove from bot1")
 
 
@@ -880,6 +901,7 @@ class BotTest(TestCase):
         bot1.equip(Tool('cannon'))
         bot1.emit.reset_mock()
 
+        bot2.setHitpoints(10)
         hp = bot2.hitpoints()
 
         bot1.shoot(bot2, 3)
@@ -923,6 +945,7 @@ class BotTest(TestCase):
         bot1.equip(Tool('repair kit'))
         bot1.emit.reset_mock()
 
+        bot2.setHitpoints(7)
         bot2.damage(5)
         hp = bot2.hitpoints()
 
@@ -1011,13 +1034,13 @@ class BotTest(TestCase):
         ls = square.contents(Lifesource)[0]
 
         bot1.openPortal('password')
-        bot1.emit.assert_any_call(Event(bot1, 'portal.open', None))
+        bot1.emit.assert_any_call(Event(bot1, 'portal_open', None))
 
         # use Portal
         bot2 = self.mkBot()
         bot2.square = None
         bot2.usePortal(bot1, 'password')
-        bot2.emit.assert_any_call(Event(bot2, 'portal.use', bot1))
+        bot2.emit.assert_any_call(Event(bot2, 'portal_use', bot1))
 
         self.assertEqual(bot2.square, square, "Should put them in the square")
         self.assertEqual(bot1.tool, None, "Should unequip the portal tool")
@@ -1077,7 +1100,7 @@ class BotTest(TestCase):
         bot.square.addThing(pylon)
 
         bot.breakLock(pylon)
-        bot.emit.assert_called_once_with(Event(bot, 'lock.broken', pylon))
+        bot.emit.assert_called_once_with(Event(bot, 'lock_broken', pylon))
         self.assertEqual(pylon.locks, 2)
 
 
@@ -1102,7 +1125,7 @@ class BotTest(TestCase):
         bot.square.addThing(pylon)
 
         bot.breakLock(pylon)
-        bot.emit.assert_any_call(Event(bot, 'pylon.captured', pylon))
+        bot.emit.assert_any_call(Event(bot, 'pylon_captured', pylon))
         self.assertEqual(pylon.team, bot.team, "Should change team")
         self.assertEqual(pylon.locks, 1, "Should have another lock")
 
@@ -1117,7 +1140,7 @@ class BotTest(TestCase):
         bot.square.addThing(pylon)
 
         bot.addLock(pylon)
-        bot.emit.assert_called_once_with(Event(bot, 'lock.added', pylon))
+        bot.emit.assert_called_once_with(Event(bot, 'lock_added', pylon))
         self.assertEqual(pylon.locks, 4)
 
 
@@ -1206,7 +1229,7 @@ class BoardTest(TestCase):
         self.assertTrue(isinstance(square, Square))
         self.assertEqual(square.board, board)
         board.eventReceived.assert_called_once_with(
-            Event(board, 'square.added', square))
+            Event(board, 'square_added', square))
         self.assertEqual(len(board.squares), 1)
         self.assertEqual(square.coordinates, Coord(0,0))
         self.assertEqual(board.squares[Coord(0,0)], square)
