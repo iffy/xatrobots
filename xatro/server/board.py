@@ -15,20 +15,20 @@ from functools import wraps
 
 class EnergyNotConsumedYet(Exception): pass
 class NotEnoughEnergy(Exception): pass
-class TooDead(Exception): pass
+class NotOnSquare(Exception): pass
 class LackingTool(Exception): pass
 class NotAllowed(Exception): pass
 
 
 
-def preventWhenDead(f):
+def requireSquare(f):
     """
     Decorator for preventing calls when too dead.
     """
     @wraps(f)
     def wrapped(instance, *args, **kwargs):
-        if instance.dead:
-            raise TooDead()
+        if not instance.square:
+            raise NotOnSquare()
         return f(instance, *args, **kwargs)
     return wrapped
 
@@ -115,10 +115,12 @@ class Square(object):
         self.eventReceived(Event(thing, 'exited', self))
 
 
-    def contents(self):
+    def contents(self, cls=None):
         """
         Return a list of all the things on this square.
         """
+        if cls:
+            return [x for x in self._contents.values() if isinstance(x, cls)]
         return list(self._contents.values())
 
 
@@ -257,7 +259,7 @@ class Lifesource(object):
             self.pairWith(other)
 
 
-    @preventWhenDead
+    @requireSquare
     def pairWith(self, other):
         """
         Forever entwine myself with the `other` (or until I am paired with
@@ -287,7 +289,7 @@ class Lifesource(object):
         return self._hitpoints
 
 
-    @preventWhenDead
+    @requireSquare
     def damage(self, amount):
         """
         Cause me damage.
@@ -300,7 +302,7 @@ class Lifesource(object):
             self.kill()
 
 
-    @preventWhenDead
+    @requireSquare
     def revive(self, amount):
         """
         Give me life.
@@ -309,7 +311,7 @@ class Lifesource(object):
         self.emit(Event(self, 'hp', amount))
 
 
-    @preventWhenDead
+    @requireSquare
     def kill(self):
         """
         Kill me.
@@ -322,7 +324,7 @@ class Lifesource(object):
         if self.other:
             try:
                 self.other.kill()
-            except TooDead:
+            except NotOnSquare:
                 pass
 
         # replace myself with Ore
@@ -421,7 +423,7 @@ class Bot(object):
             self.eventReceived(event)
 
 
-    @preventWhenDead
+    @requireSquare
     def damage(self, amount):
         """
         Damage me by C{amount} hitpoints.
@@ -436,7 +438,7 @@ class Bot(object):
             self.kill()
 
 
-    @preventWhenDead
+    @requireSquare
     def revive(self, amount):
         """
         Restore my hitpoints by C{amount}
@@ -447,7 +449,7 @@ class Bot(object):
         self.emit(Event(self, 'hp', amount))
 
 
-    @preventWhenDead
+    @requireSquare
     def kill(self):
         """
         Kill me dead.
@@ -485,7 +487,7 @@ class Bot(object):
         return self._hitpoints
 
 
-    @preventWhenDead
+    @requireSquare
     def charge(self):
         """
         Use my charger to generate one L{Energy}.  There can only exist one of
@@ -521,7 +523,7 @@ class Bot(object):
         self.generated_energy = None
 
 
-    @preventWhenDead
+    @requireSquare
     def receiveEnergies(self, energies):
         """
         Receive some energies from another bot.
@@ -545,7 +547,7 @@ class Bot(object):
             self.emit(Event(self, 'e.wasted', 1))
 
     
-    @preventWhenDead
+    @requireSquare
     def consumeEnergy(self, amount):
         """
         Consume an C{amount} of energy.
@@ -563,7 +565,7 @@ class Bot(object):
         self.emit(Event(self, 'e.consumed', amount))
 
 
-    @preventWhenDead
+    @requireSquare
     def shareEnergy(self, amount, bot):
         """
         Share C{amount} energies with C{bot}.
@@ -586,7 +588,7 @@ class Bot(object):
         bot.receiveEnergies(energies)
 
 
-    @preventWhenDead
+    @requireSquare
     def equip(self, tool):
         """
         Equip this bot with a tool.
@@ -605,7 +607,7 @@ class Bot(object):
         self.emit(Event(self, 'unequipped', None))
 
 
-    @preventWhenDead
+    @requireSquare
     @requireTool('cannon')
     def shoot(self, what, damage):
         """
@@ -619,7 +621,7 @@ class Bot(object):
         what.damage(damage)
 
 
-    @preventWhenDead
+    @requireSquare
     @requireTool('repair kit')
     def heal(self, what, amount):
         """
@@ -633,7 +635,7 @@ class Bot(object):
         what.revive(amount)
 
 
-    @preventWhenDead
+    @requireSquare
     @requireTool('portal')
     def openPortal(self, code):
         """
@@ -660,7 +662,7 @@ class Bot(object):
         bot.tool = None
 
 
-    @preventWhenDead
+    @requireSquare
     def makeTool(self, ore, kind):
         """
         Make a tool out of some ore.
@@ -669,12 +671,13 @@ class Bot(object):
         self.emit(Event(self, 'made', tool))
         self.equip(tool)
 
-        ls = Lifesource(tool)
-        tool.lifesource = ls
-
+        ls = Lifesource()
         square = ore.square
         square.removeThing(ore)
         square.addThing(ls)
+
+        ls.pairWith(tool)
+        tool.lifesource = ls
 
 
 

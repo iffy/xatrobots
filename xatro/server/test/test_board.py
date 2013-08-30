@@ -9,7 +9,7 @@ from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
-from xatro.server.board import TooDead, LackingTool, NotAllowed
+from xatro.server.board import NotOnSquare, LackingTool, NotAllowed
 
 
 class SquareTest(TestCase):
@@ -129,6 +129,25 @@ class SquareTest(TestCase):
         q.addThing(b)
         
         self.assertEqual(set(q.contents()), set([a, b]))
+
+
+    def test_contents_Class(self):
+        """
+        You can list only instances of a given class.
+        """
+        q = Square(MagicMock())
+
+        o1, o2 = Ore(), Ore()
+        b = Bot('foo', 'bar')
+        ls = Lifesource()
+
+        q.addThing(o1)
+        q.addThing(o2)
+        q.addThing(b)
+        q.addThing(ls)
+
+        self.assertEqual(q.contents(Lifesource), [ls])
+        self.assertEqual(q.contents(Bot), [b])
 
 
 
@@ -287,6 +306,7 @@ class LifesourceTest(TestCase):
         You can damage a lifesource
         """
         s = Lifesource()
+        s.square = MagicMock()
         s.emit = create_autospec(s.emit)
         hp = s.hitpoints()
 
@@ -300,6 +320,7 @@ class LifesourceTest(TestCase):
         Excessive damage will kill a Lifesource
         """
         s = Lifesource()
+        s.square = MagicMock()
         s.kill = create_autospec(s.kill)
 
         s.damage(s.hitpoints()+2)
@@ -312,6 +333,7 @@ class LifesourceTest(TestCase):
         You can restore health of a lifesource
         """
         s = Lifesource()
+        s.square = MagicMock()
         s.emit = create_autospec(s.emit)
         hp = s.hitpoints()
 
@@ -328,23 +350,26 @@ class LifesourceTest(TestCase):
         A lifesource can be killed, and once killed, will be dead.
         """
         s = Lifesource()
+        square = Square(MagicMock())
+        square.addThing(s)
+
         obj = MagicMock()
         s.pairWith(obj)
-        s.square = MagicMock()
         s.emit = create_autospec(s.emit)
 
         s.kill()
         self.assertEqual(s.hitpoints(), 0)
         s.emit.assert_called_once_with(Event(s, 'died', None))
+        self.assertEqual(s.square, None)
 
         # should kill the thing it's a lifesource for.
         obj.kill.assert_called_once_with()
 
         # things that can't be done when killed
-        self.assertRaises(TooDead, s.damage, 2)
-        self.assertRaises(TooDead, s.revive, 2)
-        self.assertRaises(TooDead, s.kill)
-        self.assertRaises(TooDead, s.pairWith, 'anything')
+        self.assertRaises(NotOnSquare, s.damage, 2)
+        self.assertRaises(NotOnSquare, s.revive, 2)
+        self.assertRaises(NotOnSquare, s.kill)
+        self.assertRaises(NotOnSquare, s.pairWith, 'anything')
 
 
     def test_kill_revertToOre(self):
@@ -369,11 +394,11 @@ class LifesourceTest(TestCase):
         If the other is already dead, don't raise an exception when I die.
         """
         obj = MagicMock()
-        obj.kill.side_effect = TooDead()
+        obj.kill.side_effect = NotOnSquare()
 
         s = Lifesource()
-        s.pairWith(obj)
         s.square = MagicMock()
+        s.pairWith(obj)
         s.kill()
 
 
@@ -382,6 +407,7 @@ class LifesourceTest(TestCase):
         If the other thing I'm a support for is destroyed, I should notice.
         """
         s = Lifesource()
+        s.square = MagicMock()
         tool = Tool('gummy bear')
         s.pairWith(tool)
         s.kill = create_autospec(s.kill)
@@ -409,6 +435,7 @@ class LifesourceTest(TestCase):
         pairing.
         """
         s = Lifesource()
+        s.square = MagicMock()
         tool1 = Tool('cow')
         s.pairWith(tool1)
 
@@ -421,6 +448,16 @@ class LifesourceTest(TestCase):
 
 
 class BotTest(TestCase):
+
+    num = 0
+
+    def mkBot(self):
+        num = self.num
+        self.num += 1
+        b = Bot('team%d' % (num,), 'bot%d' % (num,)) 
+        b.square = MagicMock()
+        b.emit = create_autospec(b.emit)
+        return b
 
 
     def test_attributes(self):
@@ -492,9 +529,7 @@ class BotTest(TestCase):
         """
         Should diminish a bot's health and notify the square.
         """
-        b = Bot('foo', 'bob')
-        b.emit = create_autospec(b.emit)
-
+        b = self.mkBot()
         b.damage(3)
         self.assertEqual(b.hitpoints(), 7)
         b.emit.assert_called_once_with(Event(b, 'hp', -3))
@@ -504,10 +539,7 @@ class BotTest(TestCase):
         """
         If you damage a bot sufficiently, it is dead.
         """
-        b = Bot('foo', 'bob')
-        b.square = MagicMock()
-        b.emit = create_autospec(b.emit)
-
+        b = self.mkBot()
         b.damage(14)
         b.emit.assert_any_call(Event(b, 'died', None))
         self.assertEqual(b.hitpoints(), 0)
@@ -517,10 +549,9 @@ class BotTest(TestCase):
         """
         Should increase the bot's health
         """
-        b = Bot('foo', 'bob')
+        b = self.mkBot()
         b.damage(4)
-
-        b.emit = create_autospec(b.emit)
+        b.emit.reset_mock()
 
         b.revive(2)
         self.assertEqual(b.hitpoints(), 8)
@@ -532,29 +563,29 @@ class BotTest(TestCase):
         Should set a bot's health to 0, send notification to the square,
         and remove them from the square
         """
-        b = Bot('foo', 'bob')
-        b.square = MagicMock()
-        b.emit = create_autospec(b.emit)
+        b = self.mkBot()
+        square = Square(MagicMock())
+        square.addThing(b)
 
         b.kill()
         self.assertEqual(b.hitpoints(), 0)
         b.emit.assert_called_once_with(Event(b, 'died', None))
-        b.square.removeThing.assert_called_once_with(b)
+        self.assertEqual(b.square, None, "Should remove from square")
         b.emit.reset_mock()
 
         # when dead, you can't do much
-        self.assertRaises(TooDead, b.damage, 2)
-        self.assertRaises(TooDead, b.revive, 2)
-        self.assertRaises(TooDead, b.kill)
-        self.assertRaises(TooDead, b.charge)
-        self.assertRaises(TooDead, b.receiveEnergies, [])
-        self.assertRaises(TooDead, b.consumeEnergy, 1)
-        self.assertRaises(TooDead, b.shareEnergy, 2, None)
-        self.assertRaises(TooDead, b.equip, Tool('foo'))
-        self.assertRaises(TooDead, b.shoot, None, 4)
-        self.assertRaises(TooDead, b.heal, None, 3)
-        self.assertRaises(TooDead, b.makeTool, None, None)
-        self.assertRaises(TooDead, b.openPortal, 'hey')
+        self.assertRaises(NotOnSquare, b.damage, 2)
+        self.assertRaises(NotOnSquare, b.revive, 2)
+        self.assertRaises(NotOnSquare, b.kill)
+        self.assertRaises(NotOnSquare, b.charge)
+        self.assertRaises(NotOnSquare, b.receiveEnergies, [])
+        self.assertRaises(NotOnSquare, b.consumeEnergy, 1)
+        self.assertRaises(NotOnSquare, b.shareEnergy, 2, None)
+        self.assertRaises(NotOnSquare, b.equip, Tool('foo'))
+        self.assertRaises(NotOnSquare, b.shoot, None, 4)
+        self.assertRaises(NotOnSquare, b.heal, None, 3)
+        self.assertRaises(NotOnSquare, b.makeTool, None, None)
+        self.assertRaises(NotOnSquare, b.openPortal, 'hey')
 
         self.assertEqual(b.emit.call_count, 0, str(b.emit.call_args))
 
@@ -563,8 +594,7 @@ class BotTest(TestCase):
         """
         Should return a Deferred which fires when killed.
         """
-        bot = Bot('foo', 'bob')
-        bot.square = MagicMock()
+        bot = self.mkBot()
         d1 = bot.destroyed()
         d2 = bot.destroyed()
         bot.kill()
@@ -577,10 +607,8 @@ class BotTest(TestCase):
         """
         When a bot is killed, any energy they shared should be removed.
         """
-        b1 = Bot('foo', 'bob')
-        b1.square = MagicMock()
-        b2 = Bot('foo', 'jim')
-        b2.emit = create_autospec(b2.emit)
+        b1 = self.mkBot()
+        b2 = self.mkBot()
         b2.square = b1.square
 
         b1.charge()
@@ -598,8 +626,7 @@ class BotTest(TestCase):
         """
         When a bot is killed, the tool it's using is destroyed.
         """
-        b1 = Bot('foo', 'bob')
-        b1.square = MagicMock()
+        b1 = self.mkBot()
 
         tool = Tool('foo')
         b1.equip(tool)
@@ -612,9 +639,7 @@ class BotTest(TestCase):
         A bot can charge, making a new generated_energy which is added to the
         energy_pool.
         """
-        b = Bot('foo', 'bob')
-        b.emit = create_autospec(b.emit)
-
+        b = self.mkBot()
         b.charge()
         self.assertTrue(isinstance(b.generated_energy, Energy),
                         "Should set generated_energy")
@@ -626,7 +651,7 @@ class BotTest(TestCase):
         """
         It is an error to try and charge when there's still a generated_energy.
         """
-        b = Bot('foo', 'bob')
+        b = self.mkBot()
         b.charge()
         self.assertRaises(EnergyNotConsumedYet, b.charge)
 
@@ -635,7 +660,7 @@ class BotTest(TestCase):
         """
         After energy is consumed, it is okay to charge more.
         """
-        b = Bot('foo', 'bob')
+        b = self.mkBot()
         b.charge()
 
         # bot consumes it
@@ -651,7 +676,7 @@ class BotTest(TestCase):
         """
         An uncharged bot can charge.
         """
-        b = Bot('foo', 'bob')
+        b = self.mkBot()
         self.assertEqual(b.canCharge().called, True)
 
 
@@ -659,7 +684,7 @@ class BotTest(TestCase):
         """
         A charged bot can't charge until the charge has been used.
         """
-        b = Bot('foo', 'bob')
+        b = self.mkBot()
         b.charge()
         d = b.canCharge()
         self.assertEqual(d.called, False)
@@ -671,8 +696,7 @@ class BotTest(TestCase):
         """
         A bot can receive energy.
         """
-        b = Bot('foo', 'bob')
-        b.emit = create_autospec(b.emit)
+        b = self.mkBot()
         energy = Energy()
         b.receiveEnergies([energy])
         self.assertIn(energy, b.energy_pool, "Bot should know it has it")
@@ -684,8 +708,7 @@ class BotTest(TestCase):
         A bot can consume energy in its pool, which will cause the energy to be
         removed from the pool, and an event to be emitted.
         """
-        b = Bot('foo', 'bob')
-        b.emit = create_autospec(b.emit)
+        b = self.mkBot()
         energy = Energy()
         b.receiveEnergies([energy])
         b.emit.reset_mock()
@@ -700,7 +723,7 @@ class BotTest(TestCase):
         """
         An error is raised if you try to consume energy you don't have.
         """
-        b = Bot('foo', 'bob')
+        b = self.mkBot()
         energy = Energy()
         b.receiveEnergies([energy])
 
@@ -712,13 +735,11 @@ class BotTest(TestCase):
         """
         A bot can share energy with other bots.
         """
-        bot1 = Bot('foo', 'bob')
-        bot1.square = MagicMock()
+        bot1 = self.mkBot()
         bot1.charge()
-        bot1.emit = create_autospec(bot1.emit)
         e = bot1.generated_energy
 
-        bot2 = Bot('foo', 'hey')
+        bot2 = self.mkBot()
         bot2.square = bot1.square
         bot2.receiveEnergies = create_autospec(bot2.receiveEnergies)
 
@@ -732,11 +753,10 @@ class BotTest(TestCase):
         """
         An error is raised if you try to share energy that you don't have.
         """
-        bot1 = Bot('foo', 'bob')
-        bot1.square = MagicMock()
+        bot1 = self.mkBot()
         bot1.charge()
 
-        bot2 = Bot('foo', 'jim')
+        bot2 = self.mkBot()
         bot2.square = bot1.square
         self.assertRaises(NotEnoughEnergy, bot1.shareEnergy, 2, bot2)
 
@@ -746,10 +766,9 @@ class BotTest(TestCase):
         A bot can only share energy with another bot on the same square,
         and it can't be a None square.
         """
-        bot1 = Bot('foo', 'bob')
-        bot1.charge()
-
-        bot2 = Bot('foo', 'hey')
+        bot1 = self.mkBot()
+        bot2 = self.mkBot()
+        bot2.square = None
         
         self.assertRaises(NotAllowed, bot1.shareEnergy, 1, bot2)
 
@@ -762,8 +781,7 @@ class BotTest(TestCase):
         """
         You can equip a tool.
         """
-        bot = Bot('foo', 'bob')
-        bot.emit = create_autospec(bot.emit)
+        bot = self.mkBot()
 
         tool = Tool('car')
         bot.equip(tool)
@@ -775,8 +793,7 @@ class BotTest(TestCase):
         """
         When a tool is destroyed, it is unequipped from the bot.
         """
-        bot = Bot('foo', 'bob')
-        bot.emit = create_autospec(bot.emit)
+        bot = self.mkBot()
 
         tool = Tool('balloon')
         bot.equip(tool)
@@ -791,9 +808,8 @@ class BotTest(TestCase):
         """
         You can shoot another thing with a cannon
         """
-        bot1 = Bot('foo', 'bob')
-        bot1.emit = create_autospec(bot1.emit)
-        bot2 = Bot('foo', 'victim')
+        bot1 = self.mkBot()
+        bot2 = self.mkBot()
 
         bot1.equip(Tool('cannon'))
         bot1.emit.reset_mock()
@@ -809,8 +825,8 @@ class BotTest(TestCase):
         """
         You can't shoot without a cannon, or with a cat.
         """
-        bot1 = Bot('foo', 'bob')
-        bot2 = Bot('foo', 'bill')
+        bot1 = self.mkBot()
+        bot2 = self.mkBot()
         self.assertRaises(LackingTool, bot1.shoot, bot2, 2)
 
         bot1.tool = Tool('cat')
@@ -821,9 +837,9 @@ class BotTest(TestCase):
         """
         You can heal another thing with a repair kit
         """
-        bot1 = Bot('foo', 'bob')
-        bot1.emit = create_autospec(bot1.emit)
-        bot2 = Bot('foo', 'lucky')
+        bot1 = self.mkBot()
+        bot2 = self.mkBot()
+        bot2.square = bot1.square
 
         bot1.equip(Tool('repair kit'))
         bot1.emit.reset_mock()
@@ -841,8 +857,8 @@ class BotTest(TestCase):
         You can't repair without a repair kit, nor can you do it with a jar of
         mayonnaise.
         """
-        bot1 = Bot('foo', 'bob')
-        bot2 = Bot('foo', 'bill')
+        bot1 = self.mkBot()
+        bot2 = self.mkBot()
         self.assertRaises(LackingTool, bot1.heal, bot2, 2)
 
         bot1.tool = Tool('jar of mayonnaise')
@@ -853,24 +869,24 @@ class BotTest(TestCase):
         """
         You can turn ore into a tool.
         """
+        b = self.mkBot()
         square = Square(MagicMock())
-        bot1 = Bot('foo', 'bob')
-        bot1.emit = create_autospec(bot1.emit)
+        square.addThing(b)
+
         ore = Ore()
         square.addThing(ore)
 
-        bot1.makeTool(ore, 'yeti')
+        b.makeTool(ore, 'yeti')
 
         # bot
-        tool = bot1.tool
+        tool = b.tool
         self.assertTrue(isinstance(tool, Tool))
         self.assertEqual(tool.kind, 'yeti')
 
-        bot1.emit.assert_any_call(Event(bot1, 'made', tool))
+        b.emit.assert_any_call(Event(b, 'made', tool))
         
         # lifesource
-        contents = square.contents()
-        ls = contents[0]
+        ls = square.contents(Lifesource)[0]
         self.assertTrue(isinstance(ls, Lifesource), ls)
         self.assertEqual(ls.other, tool)
         self.assertEqual(tool.lifesource, ls)
@@ -880,22 +896,22 @@ class BotTest(TestCase):
         """
         You can open a portal by giving it a byte string password.
         """
+        bot1 = self.mkBot()
         square = Square(MagicMock())
-        bot1 = Bot('foo', 'bob')
-        bot1.square = MagicMock()
-        bot1.emit = create_autospec(bot1.emit)
+        square.addThing(bot1)
+
         ore = Ore()
         square.addThing(ore)
 
         bot1.makeTool(ore, 'portal')
-        ls = square.contents()[0]
+        ls = square.contents(Lifesource)[0]
 
         bot1.openPortal('password')
         bot1.emit.assert_any_call(Event(bot1, 'p.open', None))
 
         # use Portal
-        bot2 = Bot('foo', 'hey')
-        bot2.emit = create_autospec(bot2.emit)
+        bot2 = self.mkBot()
+        bot2.square = None
         bot2.usePortal(bot1, 'password')
         bot2.emit.assert_any_call(Event(bot2, 'p.use', bot1))
 
@@ -913,7 +929,7 @@ class BotTest(TestCase):
         """
         You can't open a portal without a portal tool.
         """
-        bot1 = Bot('foo', 'bob')
+        bot1 = self.mkBot()
         self.assertRaises(LackingTool, bot1.openPortal, 'hey')
 
         bot1.tool = Tool('island')
@@ -924,8 +940,7 @@ class BotTest(TestCase):
         """
         You can't use a portal if you're already in a square.
         """
-        bot1 = Bot('foo', 'bar')
-        bot1.square = MagicMock()
+        bot1 = self.mkBot()
         self.assertRaises(NotAllowed, bot1.usePortal, None, 'anything')
 
 
@@ -933,15 +948,18 @@ class BotTest(TestCase):
         """
         If you use the wrong password, you don't get to land.
         """
+        bot1 = self.mkBot()
         square = Square(MagicMock())
-        bot1 = Bot('foo', 'bar')
         square.addThing(bot1)
+        
         ore = Ore()
         square.addThing(ore)
+        
         bot1.makeTool(ore, 'portal')
         bot1.openPortal('password')
 
-        bot2 = Bot('foo', 'hey')
+        bot2 = self.mkBot()
+        bot2.square = None
         self.assertRaises(NotAllowed, bot2.usePortal, bot1, 'something')
 
 
