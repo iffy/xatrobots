@@ -145,9 +145,9 @@ class StaticRules(object):
         XXX
         """
         if action == 'charge':
-            return self.charge_work_maker.getWork()
+            return bot.charging_work
         elif action == 'addLock':
-            return self.addLock_work_maker.getWork()
+            return args[0].tolock
         elif action == 'breakLock':
-            return self.breakLock_work_maker.getWork()
+            return args[0].tobreak
 

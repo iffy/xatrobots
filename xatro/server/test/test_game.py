@@ -245,26 +245,26 @@ class StaticRulesTest(TestCase):
 
     def test_workRequirement_charge(self):
         """
-        Charging requires some work
+        Charging requires the work set on the bot.
         """
         rules = StaticRules()
-        self.assertTrue(isinstance(rules.charge_work_maker, WorkMaker))
         
-        work = rules.workRequirement(MagicMock(), 'charge')
-        self.assertTrue(isinstance(work, Work))
-        self.assertEqual(work.goal, rules.charge_work_maker.getWork().goal)
+        bot = Bot('foo', 'bar')
+        bot.charging_work = 'foo'
+        work = rules.workRequirement(bot, 'charge')
+        self.assertEqual(work, 'foo', "Should use the value set on the bot")
 
 
     def test_workRequirement_addLock(self):
         """
-        Locking requires work
+        Locking requires the work set on the Pylon
         """
         rules = StaticRules()
-        self.assertTrue(isinstance(rules.addLock_work_maker, WorkMaker))
 
-        work = rules.workRequirement(MagicMock(), 'addLock', MagicMock())
-        self.assertTrue(isinstance(work, Work))
-        self.assertEqual(work.goal, rules.addLock_work_maker.getWork().goal)
+        pylon = Pylon()
+        pylon.tolock = 'hey'
+        work = rules.workRequirement(MagicMock(), 'addLock', pylon)
+        self.assertEqual(work, 'hey', "Should use the pylon.tolock attribute")
 
 
     def test_workRequirement_breakLock(self):
@@ -272,11 +272,11 @@ class StaticRulesTest(TestCase):
         Breaking locks requires work
         """
         rules = StaticRules()
-        self.assertTrue(isinstance(rules.breakLock_work_maker, WorkMaker))
-
-        work = rules.workRequirement(MagicMock(), 'breakLock', MagicMock())
-        self.assertTrue(isinstance(work, Work))
-        self.assertEqual(work.goal, rules.breakLock_work_maker.getWork().goal)
+        
+        pylon = Pylon()
+        pylon.tobreak = 'foo'
+        work = rules.workRequirement(MagicMock(), 'breakLock', pylon)
+        self.assertEqual(work, 'foo', "Should use the pylon.tobreak attr")
 
 
 
