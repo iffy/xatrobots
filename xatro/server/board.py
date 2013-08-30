@@ -5,6 +5,7 @@ Board and Square and such.
 from twisted.internet import defer
 from zope.interface import implements
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
+from xatro.server.interface import IWorkMaker
 from xatro.server.event import Event
 
 from hashlib import sha1
@@ -72,7 +73,7 @@ class Square(object):
     @ivar materials: Dictionary of materials in this square.
     """
 
-    implements(IEventReceiver)
+    implements(IEventReceiver, IWorkMaker)
 
     board = None
     events = None
@@ -92,7 +93,14 @@ class Square(object):
                 thing.eventReceived(event)
             except AttributeError:
                 pass
-            
+
+
+    def workFor(self, worker, action, target=None):
+        """
+        Get the L{Work} that is required for C{worker} to do C{action}
+        on C{target}
+        """
+        return self.board.workFor(worker, action, target)
 
 
     def addThing(self, thing):
@@ -379,6 +387,8 @@ class Bot(object):
     @ivar generated_energy: The L{Energy} I last generated (if it hasn't been
         consumed yet).  This may have been shared with another L{Bot} and so
         won't be found in my C{energy_pool}.
+
+    @ivar charging_work: The L{Work} required to charge.
     
     @ivar event_receiver: A function that will be called with every L{Event}
         I see.
@@ -401,6 +411,7 @@ class Bot(object):
         self.name = name
         self.energy_pool = []
         self.generated_energy = None
+        self.charging_work = None
         self.event_receiver = event_receiver or (lambda x:None)
         self._destruction_broadcaster = DeferredBroadcaster()
 
@@ -509,6 +520,7 @@ class Bot(object):
             raise EnergyNotConsumedYet()
 
         self.generated_energy = Energy()
+        self.charging_work = None
         self.emit(Event(self, 'charged', None))
 
         self.receiveEnergies([self.generated_energy])
@@ -519,9 +531,26 @@ class Bot(object):
         """
         Return a C{Deferred} which will fire when I'm allowed to charge again.
         """
-        if not self.generated_energy:
-            return defer.succeed(True)
-        return self.generated_energy.done()
+        if self.charging_work:
+            # asked before and you can charge now
+            return defer.succeed(self.charging_work)
+        elif self.generated_energy:
+            # waiting on energy to be consumed
+            d = self.generated_energy.done()
+            return d.addCallback(lambda x:self._getChargingWork())
+        else:
+            # first time asking
+            return defer.succeed(self._getChargingWork())
+    
+
+    def _getChargingWork(self):
+        """
+        XXX
+        """
+        if self.charging_work:
+            return self.charging_work
+        self.charging_work = self.square.workFor(self, 'charge', None)
+        return self.charging_work
 
 
     def _myEnergyConsumed(self, result):
@@ -653,7 +682,7 @@ class Bot(object):
         Open a portal to be used with a code.
         """
         self.tool.pw_hash = sha1(code).hexdigest()
-        self.emit(Event(self, 'p.open', None))
+        self.emit(Event(self, 'portal.open', None))
 
 
     def usePortal(self, bot, code):
@@ -667,7 +696,7 @@ class Bot(object):
             raise NotAllowed('Incorrect password')
 
         lifesource = bot.tool.lifesource
-        self.emit(Event(self, 'p.use', bot))
+        self.emit(Event(self, 'portal.use', bot))
         lifesource.square.addThing(self)
         lifesource.pairWith(self)
         bot.tool = None

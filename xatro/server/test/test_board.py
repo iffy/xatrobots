@@ -5,11 +5,13 @@ from zope.interface.verify import verifyObject
 from mock import MagicMock, create_autospec
 
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
+from xatro.server.interface import IWorkMaker
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 from xatro.server.board import NotOnSquare, LackingTool, NotAllowed
+from xatro.work import Work
 
 
 class SquareTest(TestCase):
@@ -24,6 +26,23 @@ class SquareTest(TestCase):
         self.assertEqual(q.contents(), [])
         self.assertEqual(q.pylon, None)
         self.assertNotEqual(q.id, None)
+
+
+    def test_IWorkMaker(self):
+        verifyObject(IWorkMaker, Square(None))
+
+
+    def test_workFor(self):
+        """
+        I just ask the Board.
+        """
+        board = MagicMock()
+        board.workFor.return_value = 'foo'
+        
+        square = Square(board)
+        ret = square.workFor('joe', 'eat', 'ice cream')
+        board.workFor.assert_called_once_with('joe', 'eat', 'ice cream')
+        self.assertEqual(ret, 'foo')
 
 
     def test_IEventReceiver(self):
@@ -473,6 +492,7 @@ class BotTest(TestCase):
         self.assertEqual(b.hitpoints(), 10)
         self.assertEqual(b.energy_pool, [])
         self.assertEqual(b.generated_energy, None)
+        self.assertEqual(b.charging_work, None)
         self.assertEqual(b.name, 'bob')
         self.assertEqual(b.team, 'foo')
         self.assertEqual(b.tool, None)
@@ -674,6 +694,66 @@ class BotTest(TestCase):
         # someone else consumes it
         b.generated_energy.consume()
         b.charge()
+
+
+    def test_canCharge_set_charging_work(self):
+        """
+        Calling canCharge will set charging_work by asking the square what
+        the work is.
+        """
+        b = self.mkBot()
+        b.square.workFor.return_value = Work('foo', 'bar')
+
+        # initial request
+        res = self.successResultOf(b.canCharge())
+        b.square.workFor.assert_called_once_with(b, 'charge', None)
+        self.assertEqual(res, Work('foo', 'bar'), "Should return the Work")
+        self.assertEqual(b.charging_work, res)
+
+        # second request before doing the work
+        b.square.workFor.reset_mock()
+        res = self.successResultOf(b.canCharge())
+        self.assertEqual(b.square.workFor.call_count, 0, "Should not have "
+                         "gone to the square for the work again")
+        self.assertEqual(res, Work('foo', 'bar'), "Should return the Work")
+
+        # charge
+        b.charge()
+        self.assertEqual(b.charging_work, None, "Should unset charging_work")
+        r = b.canCharge()
+        self.assertEqual(r.called, False)
+
+        # consume energy to trigger canCharge
+        b.consumeEnergy(1)
+        b.square.workFor.assert_called_once_with(b, 'charge', None)
+        res = self.successResultOf(r)
+        self.assertEqual(res, Work('foo', 'bar'))
+        self.assertEqual(b.charging_work, res)
+
+
+    def test_canCharge_sameAnswers(self):
+        """
+        Asking canCharge should result in the same answer for two callers
+        at every stage.
+        """
+        bot = self.mkBot()
+        from uuid import uuid4
+        def workFor(*args):
+            return uuid4()
+        bot.square.workFor.side_effect = workFor
+
+        a = self.successResultOf(bot.canCharge())
+        b = self.successResultOf(bot.canCharge())
+        self.assertEqual(a, b)
+
+        bot.charge()
+        a = bot.canCharge()
+        b = bot.canCharge()
+        bot.consumeEnergy(1)
+        self.assertEqual(self.successResultOf(a), self.successResultOf(b),
+                         "canCharge() called while waiting for energy "
+                         "consumption should result in same value")
+        self.assertEqual(self.successResultOf(a), bot.charging_work)
 
 
     def test_canCharge(self):
@@ -950,13 +1030,13 @@ class BotTest(TestCase):
         ls = square.contents(Lifesource)[0]
 
         bot1.openPortal('password')
-        bot1.emit.assert_any_call(Event(bot1, 'p.open', None))
+        bot1.emit.assert_any_call(Event(bot1, 'portal.open', None))
 
         # use Portal
         bot2 = self.mkBot()
         bot2.square = None
         bot2.usePortal(bot1, 'password')
-        bot2.emit.assert_any_call(Event(bot2, 'p.use', bot1))
+        bot2.emit.assert_any_call(Event(bot2, 'portal.use', bot1))
 
         self.assertEqual(bot2.square, square, "Should put them in the square")
         self.assertEqual(bot1.tool, None, "Should unequip the portal tool")

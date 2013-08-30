@@ -51,3 +51,11 @@ class ILocatable(Interface):
 
     square = Attribute("Square thing is in")
 
+
+class IWorkMaker(Interface):
+
+
+    def workFor(worker, action, target=None):
+        """
+        Return the Work required by C{worker} to do the C{action} to C{target}.
+        """
