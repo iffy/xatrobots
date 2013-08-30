@@ -17,9 +17,9 @@ Gameplay
 
 Overview
 ------------------------------------------------------------------------------
-Each game is played on a board of squares.  Bots are members of a team.  Each
-square on the board contains a pylon which can be captured by bots.  A team
-wins when it has captured all the pylons on the board.
+Each game is played on a board of squares.  Bots are members of a team.
+Several squares on the board contain a pylon which can be captured by bots.
+A team wins when it has captured all the pylons on the board.
 
 Bots have limited (but renewable) amounts of health and energy.  Using energy,
 bots can deal damage to other bots by shooting them with cannons, may heal 
@@ -37,18 +37,23 @@ point).
 
 Board
 ------------------------------------------------------------------------------
-Each game is played on a board of dimensions Bc x Br.  For instance, here's a
-4 x 3 board:
+Each game is played on a board of squares.  Boards aren't necessarily
+rectangular.  For instance, here's an example board:
 
-    +---+---+---+---+
+    +---+---+   +---+
     |0,0|   |   |   |
-    +---+---+---+---+
-    |   |   |   |   |
-    +---+---+---+---+
+    +---+---+---+---+---+
+    |   |   |   |   |   |
+    +---+---+---+---+---+
     |   |   |   |3,2|
     +---+---+---+---+
+        |1,3|
+        +---+
 
-Each square of the board is indexed as shown (top left square is (0,0)).
+
+Each square of the board is indexed by a coordinate.  There may not be a square
+at (0,0) in every game.  When displaying the board visually, for consistency,
+increasing x moves to the right and increasing y moves down (sorry, math).
 
 
 
@@ -70,7 +75,7 @@ During this phase, the following commands are available to bots:
 - `listSquares()` -> `[<Square>, <Square>, ...]`
   
   List the Squares that make up the board.  Among other things, it will
-  show much Ore is in each Square.
+  show much Ore is in each Square and the coordinates of the Square
    
 - `workToLand(square_id)` -> `(nonce, goal)`
   
@@ -128,16 +133,16 @@ When a bot is in play, the following commands are available:
       }
 
 
-- `charger()` -> dict
+- `workToCharge()` -> dict
   
   Requires 0 energy.
 
-  Once the charger is available, returns a mapping of work to be done to
+  Once the charger is available, returns a piece of work to be done to
   generate energy with `charge()`
             
-      {'d': 10, 'S': 100, 'n': 'foo'}
+      Work(nonce, goal)
 
-  The charger will not be available until the energy produced by the
+  The charger will not be available until the previous energy produced by the
   charger is used.
 
 
@@ -172,7 +177,8 @@ When a bot is in play, the following commands are available:
       {
           'team': None,
           'locks': 1,
-          'capture_work': {'d': 10, 'S': 100, 'n': 'foo'},
+          'tolock': <Work>,
+          'tobreak': <Work>
       }
 
 
@@ -181,11 +187,20 @@ When a bot is in play, the following commands are available:
   Requires 3 energy.
 
   `solution` is the solution of doing the work defined by
-  `pylon()['capture_work']`.
+  `pylon()['tobreak']`.
 
   Unlocks one of the locks on the pylon.  If doing this reduces the number
-  of locks to 0, then this bot's team takes control of the pylon and it
-  receives 3 locks.
+  of locks to 0, then this bot's team takes control of the pylon.
+
+
+- `addLock(solution)`
+  
+  Requires 3 energy.
+
+  `solution` is the solution of doing the work defined by
+  `pylon()['tolock']`.
+
+  Adds another lock to the pylon.
 
 
 - `makeTool(ore, tool_type)`
@@ -198,7 +213,7 @@ When a bot is in play, the following commands are available:
   tools.)
 
 
-- `move(square_id)`
+- `move(square)`
   
   Requires 2 energy.
 
