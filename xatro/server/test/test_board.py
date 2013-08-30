@@ -8,7 +8,7 @@ from xatro.server.interface import IEventReceiver, IKillable, ILocatable
 from xatro.server.interface import IWorkMaker
 from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
-from xatro.server.board import Tool
+from xatro.server.board import Tool, Board, Coord
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
 from xatro.server.board import NotOnSquare, LackingTool, NotAllowed
 from xatro.work import Work
@@ -1183,5 +1183,90 @@ class EnergyTest(TestCase):
         e.waste()
         self.assertEqual(self.successResultOf(e.done()), 'wasted')
         self.assertEqual(self.successResultOf(d), 'wasted')
+
+
+
+class BoardTest(TestCase):
+
+
+    def test_IEventReceiver(self):
+        verifyObject(IEventReceiver, Board())
+
+
+    def test_eventReceived(self):
+        """
+        Boards should pass events to the Game.
+        """
+        game = MagicMock()
+        board = Board(game)
+        self.assertEqual(board.game, game)
+
+        board.eventReceived('foo')
+        game.eventReceived.assert_called_once_with('foo')
+
+
+    def test_eventReceived_noGame(self):
+        """
+        If there's no game, don't fail
+        """
+        board = Board()
+        board.eventReceived('foo')
+
+
+    def test_addSquare(self):
+        """
+        Squares can be added to the board.
+        """
+        board = Board()
+        board.eventReceived = create_autospec(board.eventReceived)
+
+        square = board.addSquare((0, 0))
+        self.assertTrue(isinstance(square, Square))
+        self.assertEqual(square.board, board)
+        board.eventReceived.assert_called_once_with(
+            Event(board, 'square.added', square))
+        self.assertEqual(len(board.squares), 1)
+        self.assertEqual(square.coordinates, Coord(0,0))
+        self.assertEqual(board.squares[Coord(0,0)], square)
+        
+
+
+    def test_adjacentSquares(self):
+        """
+        Given a square, should return a list of adjacent squares.
+        """
+        board = Board()
+
+        # +---+---+---+
+        # |0,0|   |2,0|
+        # +---+---+---+---+
+        # |   |   |   |   |
+        # +---+---+---+---+
+        # |   |   |2,2|
+        # +---+---+---+
+        
+        for i in xrange(0, 3):
+            for j in xrange(0, 3):
+                board.addSquare((i, j))
+        board.addSquare((3, 1))
+
+        self.assertAdjacent(board, (0,0), [(1,0), (0,1)])
+        self.assertAdjacent(board, (1,1), [(1,0), (0,1), (2,1), (1,2)])
+        self.assertAdjacent(board, (3,1), [(2,1)])
+
+
+    def assertAdjacent(self, board, coord, expected):
+        actual = set(board.adjacentSquares(board.squares[Coord(*coord)]))
+        expected_squares = set([board.squares[Coord(*x)] for x in expected])
+        self.assertEqual(actual, set(expected_squares),
+                         "Expected the square at\n\n%r\n\nto be adjacent to\n\n%r\n\n"
+                         "not\n\n%r\n" % (coord,
+                         [x.coordinates for x in expected_squares],
+                         [x.coordinates for x in actual]))
+        
+
+
+
+
 
 

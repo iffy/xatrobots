@@ -13,6 +13,7 @@ from hashlib import sha1
 from uuid import uuid4
 
 from functools import wraps
+from collections import namedtuple
 
 class EnergyNotConsumedYet(Exception): pass
 class NotEnoughEnergy(Exception): pass
@@ -20,6 +21,9 @@ class NotOnSquare(Exception): pass
 class LackingTool(Exception): pass
 class NotAllowed(Exception): pass
 
+
+
+Coord = namedtuple('Coord', ['x', 'y'])
 
 
 def requireSquare(f):
@@ -63,6 +67,52 @@ class DeferredBroadcaster(object):
 
 
 
+class Board(object):
+    """
+    I am a game board.  I keep track of all the squares and pass square events
+    up to the game.
+    """
+
+    implements(IEventReceiver)
+
+    game = None
+
+
+    def __init__(self, game=None):
+        self.game = game
+        self.squares = {}
+
+
+    def eventReceived(self, event):
+        """
+        XXX
+        """
+        if self.game:
+            self.game.eventReceived(event)
+
+
+    def addSquare(self, coord):
+        """
+        XXX
+        """
+        square = Square(self)
+        self.squares[coord] = square
+        square.coordinates = coord
+
+        self.eventReceived(Event(self, 'square.added', square))
+        return square
+
+
+    def adjacentSquares(self, square):
+        """
+        XXX
+        """
+        x,y = square.coordinates
+        poss = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+        return [self.squares[c] for c in poss if c in self.squares]
+
+
+
 class Square(object):
     """
     I am a square on the gameboard.
@@ -79,6 +129,7 @@ class Square(object):
     board = None
     events = None
     pylon = None
+    coordinates = None
 
 
     def __init__(self, board):
