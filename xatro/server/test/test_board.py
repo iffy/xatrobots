@@ -742,18 +742,16 @@ class BotTest(TestCase):
             return uuid4()
         bot.square.workFor.side_effect = workFor
 
-        a = self.successResultOf(bot.canCharge())
-        b = self.successResultOf(bot.canCharge())
-        self.assertEqual(a, b)
-
         bot.charge()
         a = bot.canCharge()
         b = bot.canCharge()
         bot.consumeEnergy(1)
-        self.assertEqual(self.successResultOf(a), self.successResultOf(b),
+        a = self.successResultOf(a)
+        b = self.successResultOf(b)
+        self.assertEqual(a, b,
                          "canCharge() called while waiting for energy "
                          "consumption should result in same value")
-        self.assertEqual(self.successResultOf(a), bot.charging_work)
+        self.assertEqual(a, bot.charging_work)
 
 
     def test_canCharge(self):
