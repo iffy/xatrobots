@@ -67,6 +67,7 @@ class Square(object):
     """
     I am a square on the gameboard.
 
+    @ivar id: My id
     @ivar board: L{Board} instance.
     @ivar pylon: L{Pylon} instance.
     @ivar bots: Dictionary of bots in this square.
@@ -528,6 +529,7 @@ class Bot(object):
         self.generated_energy.done().addCallback(self._myEnergyConsumed)
 
 
+    @requireSquare
     def canCharge(self):
         """
         Return a C{Deferred} which will fire when I'm allowed to charge again.

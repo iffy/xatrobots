@@ -602,6 +602,7 @@ class BotTest(TestCase):
         self.assertRaises(NotOnSquare, b.revive, 2)
         self.assertRaises(NotOnSquare, b.kill)
         self.assertRaises(NotOnSquare, b.charge)
+        self.assertRaises(NotOnSquare, b.canCharge)
         self.assertRaises(NotOnSquare, b.receiveEnergies, [])
         self.assertRaises(NotOnSquare, b.consumeEnergy, 1)
         self.assertRaises(NotOnSquare, b.shareEnergy, 2, None)
