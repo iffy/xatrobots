@@ -52,10 +52,25 @@ class ILocatable(Interface):
     square = Attribute("Square thing is in")
 
 
+class IGameAware(Interface):
+
+
+    def onGame(func, *args, **kwargs):
+        """
+        Runs a function on the Game.
+        """
+
+
 class IWorkMaker(Interface):
 
 
     def workFor(worker, action, target=None):
         """
         Return the Work required by C{worker} to do the C{action} to C{target}.
+        """
+
+
+    def validSolution(work, solution):
+        """
+        Return C{True} if the solution is a valid one for the work.
         """

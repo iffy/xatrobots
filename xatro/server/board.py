@@ -5,7 +5,7 @@ Board and Square and such.
 from twisted.internet import defer
 from zope.interface import implements
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
-from xatro.server.interface import IWorkMaker
+from xatro.server.interface import IGameAware
 from xatro.server.event import Event
 
 from hashlib import sha1
@@ -73,7 +73,7 @@ class Board(object):
     up to the game.
     """
 
-    implements(IEventReceiver)
+    implements(IEventReceiver, IGameAware)
 
     game = None
 
@@ -89,6 +89,13 @@ class Board(object):
         """
         if self.game:
             self.game.eventReceived(event)
+
+
+    def onGame(self, func, *args, **kwargs):
+        """
+        XXX
+        """
+        return self.game.onGame(func, *args, **kwargs)
 
 
     def addSquare(self, coord):
@@ -124,7 +131,7 @@ class Square(object):
     @ivar materials: Dictionary of materials in this square.
     """
 
-    implements(IEventReceiver, IWorkMaker)
+    implements(IEventReceiver, IGameAware)
 
     board = None
     events = None
@@ -147,12 +154,11 @@ class Square(object):
                 pass
 
 
-    def workFor(self, worker, action, target=None):
+    def onGame(self, func, *args, **kwargs):
         """
-        Get the L{Work} that is required for C{worker} to do C{action}
-        on C{target}
+        Call the named function on the game.
         """
-        return self.board.workFor(worker, action, target)
+        return self.board.onGame(func, *args, **kwargs)
 
 
     def addThing(self, thing):
