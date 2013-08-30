@@ -9,7 +9,7 @@ from xatro.server.event import Event
 from xatro.server.board import Square, Pylon, Ore, Lifesource, Bot, Energy
 from xatro.server.board import Tool
 from xatro.server.board import EnergyNotConsumedYet, NotEnoughEnergy
-from xatro.server.board import TooDead, LackingTool
+from xatro.server.board import TooDead, LackingTool, NotAllowed
 
 
 class SquareTest(TestCase):
@@ -353,8 +353,15 @@ class LifesourceTest(TestCase):
         If you pair one thing with another thing, it should forget the old
         pairing.
         """
-        self.fail('write me')
+        s = Lifesource()
+        tool1 = Tool('cow')
+        s.pairWith(tool1)
 
+        tool2 = Tool('milk')
+        s.pairWith(tool2)
+
+        tool1.kill()
+        self.assertEqual(s.dead, False)
 
 
 
@@ -492,7 +499,7 @@ class BotTest(TestCase):
         self.assertRaises(TooDead, b.shoot, None, 4)
         self.assertRaises(TooDead, b.heal, None, 3)
         self.assertRaises(TooDead, b.makeTool, None, None)
-        self.assertRaises(TooDead, b.landBot, None)
+        self.assertRaises(TooDead, b.openPortal, 'hey')
 
         self.assertEqual(b.emit.call_count, 0, str(b.emit.call_args))
 
@@ -792,9 +799,9 @@ class BotTest(TestCase):
         self.assertEqual(tool.lifesource, ls)
 
 
-    def test_landBot(self):
+    def test_openPortal(self):
         """
-        You can land a bot using a portal you've made.
+        You can open a portal by giving it a byte string password.
         """
         square = Square(MagicMock())
         bot1 = Bot('foo', 'bob')
@@ -805,34 +812,60 @@ class BotTest(TestCase):
 
         bot1.makeTool(ore, 'portal')
         ls = square.contents()[0]
-        
-        bot2 = Bot('hey', 'ho')
 
-        bot1.landBot(bot2)
+        bot1.openPortal('password')
+        bot1.emit.assert_any_call(Event(bot1, 'p.open', None))
+
+        # use Portal
+        bot2 = Bot('foo', 'hey')
+        bot2.emit = create_autospec(bot2.emit)
+        bot2.usePortal(bot1, 'password')
+        bot2.emit.assert_any_call(Event(bot2, 'p.use', bot1))
 
         self.assertEqual(bot2.square, square, "Should put them in the square")
         self.assertEqual(bot1.tool, None, "Should unequip the portal tool")
         self.assertEqual(ls.other, bot2, "Should pair the Lifesource with "
                          "the new bot")
-        bot1.emit.assert_any_call(Event(bot1, 'landed', bot2))
 
         # if the first bot is destroyed, it shouldn't affect the new bot
         bot1.kill()
         self.assertEqual(bot2.dead, False)
 
 
-    def test_landBot_noPortal(self):
+    def test_openPortal_noPortal(self):
         """
-        You can't land a bot without a portal.
+        You can't open a portal without a portal tool.
         """
         bot1 = Bot('foo', 'bob')
-        bot2 = Bot('foo', 'bill')
-        self.assertRaises(LackingTool, bot1.landBot, bot2)
+        self.assertRaises(LackingTool, bot1.openPortal, 'hey')
 
         bot1.tool = Tool('island')
-        self.assertRaises(LackingTool, bot1.landBot, bot2)
+        self.assertRaises(LackingTool, bot1.openPortal, 'ho')
 
 
+    def test_usePortal_onSquare(self):
+        """
+        You can't use a portal if you're already in a square.
+        """
+        bot1 = Bot('foo', 'bar')
+        bot1.square = MagicMock()
+        self.assertRaises(NotAllowed, bot1.usePortal, None, 'anything')
+
+
+    def test_usePortal_wrongPassword(self):
+        """
+        If you use the wrong password, you don't get to land.
+        """
+        square = Square(MagicMock())
+        bot1 = Bot('foo', 'bar')
+        square.addThing(bot1)
+        ore = Ore()
+        square.addThing(ore)
+        bot1.makeTool(ore, 'portal')
+        bot1.openPortal('password')
+
+        bot2 = Bot('foo', 'hey')
+        self.assertRaises(NotAllowed, bot2.usePortal, bot1, 'something')
 
 
 

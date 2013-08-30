@@ -7,6 +7,8 @@ from zope.interface import implements
 from xatro.server.interface import IEventReceiver, IKillable, ILocatable
 from xatro.server.event import Event
 
+from hashlib import sha1
+
 from uuid import uuid4
 
 from functools import wraps
@@ -15,6 +17,7 @@ class EnergyNotConsumedYet(Exception): pass
 class NotEnoughEnergy(Exception): pass
 class TooDead(Exception): pass
 class LackingTool(Exception): pass
+class NotAllowed(Exception): pass
 
 
 
@@ -204,6 +207,7 @@ class Lifesource(object):
     implements(ILocatable, IKillable)
 
     other = None
+    _other_d = None
     square = None
     _hitpoints = 10
     dead = False
@@ -220,8 +224,15 @@ class Lifesource(object):
         """
         XXX
         """
+        if self.other:
+            # cancel previous pairing
+            self._other_d.cancel()
         self.other = other
-        other.destroyed().addCallback(lambda x:self.kill())
+
+        # watch for the death of the other
+        self._other_d = d = other.destroyed()
+        d.addCallback(lambda x:self.kill())
+        d.addErrback(lambda err: err.trap(defer.CancelledError))
 
 
     def emit(self, event):
@@ -574,16 +585,29 @@ class Bot(object):
 
     @preventWhenDead
     @requireTool('portal')
-    def landBot(self, bot):
+    def openPortal(self, code):
         """
-        Land a bot on the square with the Lifesource I made the portal tool out
-        of.
+        Open a portal to be used with a code.
         """
-        tool = self.tool
-        self.tool = None
-        tool.lifesource.square.addThing(bot)
-        tool.lifesource.pairWith(bot)
-        self.emit(Event(self, 'landed', bot))
+        self.tool.pw_hash = sha1(code).hexdigest()
+        self.emit(Event(self, 'p.open', None))
+
+
+    def usePortal(self, bot, code):
+        """
+        Use a bot's portal with the given code and land on the board.
+        """
+        if self.square:
+            raise NotAllowed('You have already landed on the board')
+        
+        if sha1(code).hexdigest() != bot.tool.pw_hash:
+            raise NotAllowed('Incorrect password')
+
+        lifesource = bot.tool.lifesource
+        self.emit(Event(self, 'p.use', bot))
+        lifesource.square.addThing(self)
+        lifesource.pairWith(self)
+        bot.tool = None
 
 
     @preventWhenDead
