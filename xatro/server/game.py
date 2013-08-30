@@ -129,6 +129,14 @@ class StaticRules(object):
             subject.setLocks(self.starting_locks)
 
 
+    def handle_e_gone(self, (bot, verb, ignore)):
+        """
+        When a bot's energy is consumed in whatever way, set the charging_work
+        for the next energy to be produced.
+        """
+        bot.charging_work = self.charge_work_maker.getWork()
+
+
     def energyToHitpoints(self, bot, action, target, energy):
         """
         XXX

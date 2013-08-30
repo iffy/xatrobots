@@ -603,7 +603,6 @@ class Bot(object):
             raise EnergyNotConsumedYet()
 
         self.generated_energy = Energy()
-        self.charging_work = None
         self.emit(Event(self, 'charged', None))
 
         self.receiveEnergies([self.generated_energy])
@@ -615,28 +614,11 @@ class Bot(object):
         """
         Return a C{Deferred} which will fire when I'm allowed to charge again.
 
-        @return: A C{Deferred} which will fire with a L{Work} instance.
+        @return: A C{Deferred} which will fire once I can charge again.
         """
-        if self.charging_work:
-            # asked before and you can charge now
-            return defer.succeed(self.charging_work)
-        elif self.generated_energy:
-            # waiting on energy to be consumed
-            d = self.generated_energy.done()
-            return d.addCallback(lambda x:self._getChargingWork())
-        else:
-            # first time asking
-            return defer.succeed(self._getChargingWork())
-    
-
-    def _getChargingWork(self):
-        """
-        XXX
-        """
-        if self.charging_work:
-            return self.charging_work
-        self.charging_work = self.square.workFor(self, 'charge', None)
-        return self.charging_work
+        if self.generated_energy:
+            return self.generated_energy.done()
+        return defer.succeed(None)
 
 
     def _myEnergyConsumed(self, result):
@@ -644,6 +626,7 @@ class Bot(object):
         Called when an energy I produced was consumed or wasted in some way.
         """
         self.generated_energy = None
+        self.emit(Event(self, 'e_gone', None))
 
 
     @requireSquare
