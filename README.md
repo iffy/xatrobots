@@ -85,6 +85,7 @@ Lifesources.
     }
 
 Attribute | Details
+--- | ---
 `id` | UUID of the square.
 `object` | Always `"square"`.
 `coordinates` | A tuple of the `x` and `y` coordinates of the square.
@@ -108,6 +109,7 @@ Bots are used by players to play the game.
     }
 
 Attribute | Details
+--- | ---
 `id` | UUID of the bot
 `object` | Always `"bot"`
 `hp` | Integer health remaining.
@@ -129,6 +131,7 @@ All the pylons must be captured in order to win the game.
     }
 
 Attribute | Details
+--- | ---
 `id` | UUID of the pylon
 `object` | Always `"pylon"`
 `locks` | Integer number of locks on the pylon.
@@ -145,6 +148,7 @@ Ore can be forged into tools (such as a cannon, a repair kit or a portal).
     }
 
 Attribute | Details
+--- | ---
 `id` | UUID of the ore
 `object` | Always `"ore"`
 
@@ -161,6 +165,7 @@ Lifesource for a tool is destroyed, the tool is also destroyed.
     }
 
 Attribute | Details
+--- | ---
 `id` | UUID of the lifesource
 `object` | Always `"lifesource"`
 `hp` | Integer health remaining.
