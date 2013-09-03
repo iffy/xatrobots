@@ -103,6 +103,7 @@ class BotPlayerTest(TestCase):
             'addLock',
             'move',
             'look',
+            'listSquares',
         ]
         player = BotPlayer(None)
         self.assertEqual(set(expected), set(player._allowed_functions))
@@ -246,6 +247,22 @@ class BotPlayerTest(TestCase):
         self.assertRaises(NotAllowed, player.callOnBot, None, 'foo')
         self.assertEqual(player._bot.foo.call_count, 0, "Should not have "
                          "called through")
+
+
+    def test_workFor(self):
+        """
+        You can get the work required for a certain action.
+        """
+        player = self.readyPlayer()
+        rules = player._rules
+
+        rules.workRequirement.return_value = 'foo'
+
+        self.assertEqual(player.workFor('shooting', 'pigeons'), 'foo')
+        rules.workRequirement.assert_called_once_with(player._bot, 'shooting',
+                                                      'pigeons')
+
+
 
 
 

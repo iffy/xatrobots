@@ -41,6 +41,7 @@ class BotPlayer(object):
             'addLock',
             'move',
             'look',
+            'listSquares',
         ]
 
 
@@ -69,14 +70,23 @@ class BotPlayer(object):
         self._rules = board.rules
 
 
-    def callOnBot(self, work_solution, func, *args, **kwargs):
+    def workFor(self, action, *args, **kwargs):
+        """
+        Get the work requirement for doing this action.
+
+        @return: Either a L{Work} instance or C{None} if no work is required.
+        """
+        return self._rules.workRequirement(self._bot, action, *args, **kwargs)
+
+
+    def callOnBot(self, work_solution, action, *args, **kwargs):
         """
         Call a function on the bot.
 
         @param work_solution: A bytestring solution to the work needed to call
             this function or C{None} if no work is required.
 
-        @param func: Name of the function on the L{Bot} to call.
+        @param action: Name of the function on the L{Bot} to call.
         @param *args: Arguments to pass to function
         @param **kwargs: Keyword arguments to pass to the function.
 
@@ -91,21 +101,21 @@ class BotPlayer(object):
 
         @return: The result of the function
         """
-        if func not in self._allowed_functions:
-            raise NotAllowed(func)
+        if action not in self._allowed_functions:
+            raise NotAllowed(action)
 
         # is it allowed?
-        self._rules.isAllowed(func, *args, **kwargs)
+        self._rules.isAllowed(action, *args, **kwargs)
 
         # work requirement
-        work = self._rules.workRequirement(self._bot, func, *args, **kwargs)
+        work = self._rules.workRequirement(self._bot, action, *args, **kwargs)
         if work:
             self._rules.assertSolution(work_solution, work)
 
         # energy requirement
-        energy = self._rules.energyRequirement(self._bot, func, *args, **kwargs)
+        energy = self._rules.energyRequirement(self._bot, action, *args, **kwargs)
         self._bot.consumeEnergy(energy)
 
-        return getattr(self._bot, func)(*args, **kwargs)
+        return getattr(self._bot, action)(*args, **kwargs)
 
 

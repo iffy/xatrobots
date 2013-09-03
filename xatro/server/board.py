@@ -217,7 +217,6 @@ class Square(object):
             'coordinates': self.coordinates,
             'ore_count': [x.id for x in self.contents(Ore)],
             'pylon_count': [x.id for x in self.contents(Pylon)],
-            'adjacent_squares': [x.id for x in self.board.adjacentSquares(self)]
         }
 
 
@@ -953,6 +952,13 @@ class Bot(object):
         if not self.square:
             return []
         return self.square.contents()
+
+
+    def listSquares(self):
+        """
+        List the squares on the board.
+        """
+        return self.square.board.squares.values()
 
 
 

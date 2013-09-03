@@ -1223,6 +1223,18 @@ class BotTest(TestCase):
         self.assertRaises(NotAllowed, bot.land, None)
 
 
+    def test_listSquares(self):
+        """
+        A bot can list the squares on the board.
+        """
+        bot = self.mkBot(real_square=True)
+        square = Square(MagicMock())
+        bot.square.board.squares = {'foo': square}
+
+        self.assertEqual(bot.listSquares(), [square])
+
+
+
 
 class EnergyTest(TestCase):
 
