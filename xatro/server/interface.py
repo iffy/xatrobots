@@ -112,6 +112,12 @@ class IGameRules(IEventReceiver):
         """
 
 
+    def mutateResponse(actual_response, bot, action, *args, **kwargs):
+        """
+        Mutate responses for actions in accordance with rules.
+        """
+
+
 class IDictable(Interface):
 
 

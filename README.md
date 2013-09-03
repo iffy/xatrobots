@@ -84,25 +84,12 @@ Lifesources.
       "pylon_count": 1
     }
 
-- `id`
-
-  UUID of the square.
-
-- `object`
-
-  Always `"square"`.
-
-- `coordinates`
-
-  A tuple of the `x` and `y` coordinates of the square.
-
-- `ore_count`
-
-  The integer amount of ore in this square.
-
-- `pylon_count`
-
-  The integer number of pylons in this square.
+Attribute | Details
+`id` | UUID of the square.
+`object` | Always `"square"`.
+`coordinates` | A tuple of the `x` and `y` coordinates of the square.
+`ore_count` | The integer amount of ore in this square.
+`pylon_count` | The integer number of pylons in this square.
 
 
 
@@ -120,33 +107,14 @@ Bots are used by players to play the game.
       "energy": 3
     }
 
-- `id`
-
-  UUID of the bot
-
-- `object`
-
-  Always `"bot"`
-
-- `hp`
-  
-  Integer health remaining.
-
-- `team`
-
-  String team name
-
-- `name`
-
-  String bot name
-
-- `tool`
-
-  String name of the tool currently equipped.
-
-- `energy`
-
-  Integer amount of energy available for actions.
+Attribute | Details
+`id` | UUID of the bot
+`object` | Always `"bot"`
+`hp` | Integer health remaining.
+`team` | String team name
+`name` | String bot name
+`tool` | String name of the tool currently equipped.
+`energy` | Integer amount of energy available for actions.
 
 
 ### Pylon ###
@@ -160,22 +128,11 @@ All the pylons must be captured in order to win the game.
       "team": "bob",
     }
 
-- `id`
-
-  UUID of the pylon
-
-- `object`
-
-  Always `"pylon"`
-
-- `locks`
-
-  Integer number of locks on the pylon.
-
-- `team`
-
-  The team that currently controls this pylon.  Will be `null` if no team
-  controls it.
+Attribute | Details
+`id` | UUID of the pylon
+`object` | Always `"pylon"`
+`locks` | Integer number of locks on the pylon.
+`team` | The team that currently controls this pylon.  Will be `null` if no team controls it.
 
 
 ### Ore ###
@@ -187,13 +144,9 @@ Ore can be forged into tools (such as a cannon, a repair kit or a portal).
       "object": "ore"
     }
 
-- `id`
-
-  UUID of the ore
-
-- `object`
-
-  Always `"ore"`
+Attribute | Details
+`id` | UUID of the ore
+`object` | Always `"ore"`
 
 
 ### Lifesource ###
@@ -207,17 +160,10 @@ Lifesource for a tool is destroyed, the tool is also destroyed.
       "hp": 59
     }
 
-- `id`
-
-  UUID of the lifesource
-
-- `object`
-
-  Always `"lifesource"`
-
-- `hp`
-
-  Integer health remaining.
+Attribute | Details
+`id` | UUID of the lifesource
+`object` | Always `"lifesource"`
+`hp` | Integer health remaining.
 
 
 
