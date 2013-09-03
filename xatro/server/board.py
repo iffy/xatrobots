@@ -215,8 +215,8 @@ class Square(object):
             'id': self.id,
             'object': 'square',
             'coordinates': self.coordinates,
-            'ore_count': [x.id for x in self.contents(Ore)],
-            'pylon_count': [x.id for x in self.contents(Pylon)],
+            'ore_count': len(self.contents(Ore)),
+            'pylon_count': len(self.contents(Pylon)),
         }
 
 
@@ -290,8 +290,6 @@ class Pylon(object):
             'object': 'pylon',
             'locks': self.locks,
             'team': self.team,
-            'tobreak': self.tobreak,
-            'tolock': self.tolock,
         }
 
 
@@ -423,14 +421,10 @@ class Lifesource(object):
 
 
     def toDict(self):
-        other_id = None
-        if self.other:
-            other_id = self.other.id
         return {
             'id': self.id,
             'object': 'lifesource',
             'hp': self.hitpoints(),
-            'other': other_id,
         }
 
 
@@ -586,7 +580,7 @@ class Bot(object):
     def toDict(self):
         tool = None
         if self.tool:
-            tool = self.tool.toDict()
+            tool = self.tool.kind
         return {
             'id': self.id,
             'hp': self.hitpoints(),

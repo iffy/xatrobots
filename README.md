@@ -1,4 +1,3 @@
-==============================================================================
 xatrobots
 ==============================================================================
 
@@ -55,6 +54,170 @@ Each square of the board is indexed by a coordinate.  There may not be a square
 at (0,0) in every game.  When displaying the board visually, for consistency,
 increasing x moves to the right and increasing y moves down (sorry, math).
 
+
+
+Game pieces
+-------------------------------------------------------------------------------
+
+These are the game pieces:
+
+- Square
+- Bot
+- Pylon
+- Ore
+- Lifesource
+
+Following is more detail about them and the attributes they have (including
+what a JSON representation of them would look like).
+
+
+### Square ###
+
+Squares make up the playing field.  Squares can contain Pylons, Bots, Ore and
+Lifesources.
+
+    {
+      "id": "7b06a48f-6af9-4972-b3ee-5cb9522968e9",
+      "object": "square",
+      "coordinates": [0, 2],
+      "ore_count": 9,
+      "pylon_count": 1
+    }
+
+- `id`
+
+  UUID of the square.
+
+- `object`
+
+  Always `"square"`.
+
+- `coordinates`
+
+  A tuple of the `x` and `y` coordinates of the square.
+
+- `ore_count`
+
+  The integer amount of ore in this square.
+
+- `pylon_count`
+
+  The integer number of pylons in this square.
+
+
+
+### Bot ###
+
+Bots are used by players to play the game.
+
+    {
+      "id": "7b06a48f-6af9-4972-b3ee-5cb9522968e9",
+      "object": "bot",
+      "hp": 8,
+      "team": "A-Team",
+      "name": "Joe the Builder",
+      "tool": "cannon",
+      "energy": 3
+    }
+
+- `id`
+
+  UUID of the bot
+
+- `object`
+
+  Always `"bot"`
+
+- `hp`
+  
+  Integer health remaining.
+
+- `team`
+
+  String team name
+
+- `name`
+
+  String bot name
+
+- `tool`
+
+  String name of the tool currently equipped.
+
+- `energy`
+
+  Integer amount of energy available for actions.
+
+
+### Pylon ###
+
+All the pylons must be captured in order to win the game.
+
+    {
+      "id": "7b06a48f-6af9-4972-b3ee-5cb9522968e9",
+      "object": "pylon",
+      "locks": 2,
+      "team": "bob",
+    }
+
+- `id`
+
+  UUID of the pylon
+
+- `object`
+
+  Always `"pylon"`
+
+- `locks`
+
+  Integer number of locks on the pylon.
+
+- `team`
+
+  The team that currently controls this pylon.  Will be `null` if no team
+  controls it.
+
+
+### Ore ###
+
+Ore can be forged into tools (such as a cannon, a repair kit or a portal).
+
+    {
+      "id": "7b06a48f-6af9-4972-b3ee-5cb9522968e9",
+      "object": "ore"
+    }
+
+- `id`
+
+  UUID of the ore
+
+- `object`
+
+  Always `"ore"`
+
+
+### Lifesource ###
+
+A Lifesource is what replaces a piece of Ore when a tool is made.  If the
+Lifesource for a tool is destroyed, the tool is also destroyed.
+
+    {
+      "id": "7b06a48f-6af9-4972-b3ee-5cb9522968e9",
+      "object": "lifesource",
+      "hp": 59
+    }
+
+- `id`
+
+  UUID of the lifesource
+
+- `object`
+
+  Always `"lifesource"`
+
+- `hp`
+
+  Integer health remaining.
 
 
 
