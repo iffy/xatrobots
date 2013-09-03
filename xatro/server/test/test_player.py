@@ -104,6 +104,7 @@ class BotPlayerTest(TestCase):
             'move',
             'look',
             'listSquares',
+            'land',
         ]
         player = BotPlayer(None)
         self.assertEqual(set(expected), set(player._allowed_functions))

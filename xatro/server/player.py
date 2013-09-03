@@ -42,6 +42,7 @@ class BotPlayer(object):
             'move',
             'look',
             'listSquares',
+            'land',
         ]
 
 
