@@ -7,7 +7,7 @@ from xatro.server.board import Pylon
 
 class GameShell(object):
     """
-    I am a the place all the game pieces (squares, board, bots) go to get
+    I am the place all the game pieces (squares, board, bots) go to get
     game-related specifics and to perform actions.
     """
 
@@ -33,6 +33,7 @@ class StaticRules(object):
 
     @ivar locks_after_capture: The number of locks to be put on a Pylon after
         it is captured.
+    @ivar starting_locks: The number of locks a pylon has when created.
     """
 
     implements(IGameRules)

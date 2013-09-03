@@ -115,7 +115,7 @@ class IGamePiece(Interface):
 class IDictable(Interface):
 
 
-    def toDict(self):
+    def toDict():
         """
         Convert this object into a dictionary representation.
         """

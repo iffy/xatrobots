@@ -8,7 +8,7 @@ from xatro.server.board import Bot, NotAllowed
 class BotPlayer(object):
     """
     I am a player.  Unlike the L{xatro.server.board.Bot} object whose public
-    interface lets you cheat.  I follow all the rules.  I am the think you
+    interface lets you cheat, I follow all the rules.  I am the thing you
     should write network-facing server protocols to use.
     """
 
@@ -102,3 +102,5 @@ class BotPlayer(object):
         self._bot.consumeEnergy(energy)
 
         return getattr(self._bot, func)(*args, **kwargs)
+
+

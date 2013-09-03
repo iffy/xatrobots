@@ -239,7 +239,7 @@ class Pylon(object):
     @ivar tolock: The L{Work} required to add another lock.
     """
 
-    implements(ILocatable)
+    implements(ILocatable, IDictable)
 
     square = None
     locks = 3
@@ -249,6 +249,17 @@ class Pylon(object):
 
     def __init__(self):
         self.id = str(uuid4())
+
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'object': 'pylon',
+            'locks': self.locks,
+            'team': self.team,
+            'tobreak': self.tobreak,
+            'tolock': self.tolock,
+        }
 
 
     def emit(self, event):
@@ -292,12 +303,19 @@ class Ore(object):
     @ivar id: My unique id.
     """
 
-    implements(ILocatable)
+    implements(ILocatable, IDictable)
 
     square = None
 
     def __init__(self):
         self.id = str(uuid4())
+
+
+    def toDict(self):
+        return {
+            'object': 'ore',
+            'id': self.id,
+        }
 
 
 
@@ -311,13 +329,24 @@ class Tool(object):
     @ivar lifesource: The lifesource I came from, maybe.  It could be None.
     """
 
+    implements(IDictable)
+
     dead = False
 
 
     def __init__(self, kind, lifesource=None):
+        self.id = str(uuid4())
         self.kind = kind
         self.lifesource = lifesource
         self._destruction_broadcaster = DeferredBroadcaster()
+
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'kind': self.kind,
+            'object': 'tool',
+        }
 
 
     def destroyed(self):
@@ -344,7 +373,7 @@ class Lifesource(object):
     @ivar dead: C{True} means I'm dead.
     """
 
-    implements(ILocatable, IKillable)
+    implements(ILocatable, IKillable, IDictable)
 
     other = None
     _other_d = None
@@ -358,6 +387,18 @@ class Lifesource(object):
         self._destruction_broadcaster = DeferredBroadcaster()
         if other:
             self.pairWith(other)
+
+
+    def toDict(self):
+        other_id = None
+        if self.other:
+            other_id = self.other.id
+        return {
+            'id': self.id,
+            'object': 'lifesource',
+            'hp': self.hitpoints(),
+            'other': other_id,
+        }
 
 
     @requireSquare
@@ -488,7 +529,7 @@ class Bot(object):
         I see.
     """
 
-    implements(IEventReceiver, IKillable, ILocatable)
+    implements(IEventReceiver, IKillable, ILocatable, IDictable)
 
     team = None
     name = None
@@ -508,6 +549,21 @@ class Bot(object):
         self.charging_work = None
         self.event_receiver = event_receiver or (lambda x:None)
         self._destruction_broadcaster = DeferredBroadcaster()
+
+
+    def toDict(self):
+        tool = None
+        if self.tool:
+            tool = self.tool.toDict()
+        return {
+            'id': self.id,
+            'hp': self.hitpoints(),
+            'object': 'bot',
+            'team': self.team,
+            'name': self.name,
+            'tool': tool,
+            'energy': len(self.energy_pool),
+        }
 
 
     def _requireSameSquare(self, other):

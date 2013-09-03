@@ -1,5 +1,6 @@
 from twisted.trial.unittest import TestCase
 from twisted.internet import defer
+from twisted.python import log
 from zope.interface.verify import verifyObject
 
 from mock import MagicMock, create_autospec
@@ -25,7 +26,6 @@ class SquareTest(TestCase):
         q = Square('board')
         self.assertEqual(q.board, 'board')
         self.assertEqual(q.contents(), [])
-        self.assertEqual(q.pylon, None)
         self.assertNotEqual(q.id, None)
 
 
@@ -33,8 +33,10 @@ class SquareTest(TestCase):
         verifyObject(IDictable, Square(None))
 
 
-    def test_toDict_json(self):
-        Square(Board()).toDict()
+    def test_toDict(self):
+        board = Board()
+        square = board.addSquare((0,0))
+        log.msg(square.toDict())
 
 
     def test_IEventReceiver(self):
@@ -169,6 +171,10 @@ class PylonTest(TestCase):
         verifyObject(IDictable, Pylon())
 
 
+    def test_toDict(self):
+        log.msg(Pylon().toDict())
+
+
     def test_ILocatable(self):
         verifyObject(ILocatable, Pylon())
 
@@ -244,6 +250,10 @@ class OreTest(TestCase):
         verifyObject(IDictable, Ore())
 
 
+    def test_toDict(self):
+        log.msg(Ore().toDict())
+
+
     def test_ILocatable(self):
         verifyObject(ILocatable, Ore())
 
@@ -254,6 +264,13 @@ class ToolTest(TestCase):
 
     def test_IDictable(self):
         verifyObject(IDictable, Tool('foo'))
+
+
+    def test_toDict(self):
+        """
+        A normal tool with no lifesource can turn into a dict.
+        """
+        log.msg(Tool('foo').toDict())
 
 
     def test_attributes(self):
@@ -291,6 +308,10 @@ class LifesourceTest(TestCase):
 
     def test_IDictable(self):
         verifyObject(IDictable, Lifesource())
+
+
+    def test_toDict(self):
+        Lifesource().toDict()
 
 
     def test_emit(self):
@@ -511,6 +532,10 @@ class BotTest(TestCase):
 
     def test_IDictable(self):
         verifyObject(IDictable, Bot(None, None))
+
+
+    def test_toDict(self):
+        log.msg(Bot(None, None).toDict())
 
 
     def test_ILocatable(self):
