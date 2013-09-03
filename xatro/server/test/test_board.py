@@ -1054,6 +1054,7 @@ class BotTest(TestCase):
         bot2.square = None
         bot2.usePortal(bot1, 'password')
         bot2.emit.assert_any_call(Event(bot2, 'portal_use', bot1))
+        bot2.emit.assert_any_call(Event(bot2, 'landed', square))
 
         self.assertEqual(bot2.square, square, "Should put them in the square")
         self.assertEqual(bot1.tool, None, "Should unequip the portal tool")
@@ -1199,6 +1200,27 @@ class BotTest(TestCase):
         bot = self.mkBot()
         bot.square = None
         self.assertEqual(bot.look(), [])
+
+
+    def test_land(self):
+        """
+        A bot floating in the ether can land on a square.
+        """
+        bot = self.mkBot()
+        bot.square = None
+
+        square = Square(MagicMock())
+        bot.land(square)
+        bot.emit.assert_any_call(Event(bot, 'landed', square))
+        self.assertEqual(bot.square, square)
+
+
+    def test_land_alreadyOnSquare(self):
+        """
+        A bot can't land if it's already on a square.
+        """
+        bot = self.mkBot()
+        self.assertRaises(NotAllowed, bot.land, None)
 
 
 

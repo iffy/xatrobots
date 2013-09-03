@@ -664,6 +664,18 @@ class Bot(object):
         self.emit(Event(self, 'hp_set', hp))
 
 
+    def land(self, square):
+        """
+        Land this bot on a square.
+
+        @raise NotAllowed: If the bot has already landed on a square.
+        """
+        if self.square:
+            raise NotAllowed("You have already landed")
+        square.addThing(self)
+        self.emit(Event(self, 'landed', square))
+
+
     @requireSquare
     def charge(self):
         """
@@ -841,6 +853,7 @@ class Bot(object):
 
         lifesource = bot.tool.lifesource
         self.emit(Event(self, 'portal_use', bot))
+        self.emit(Event(self, 'landed', lifesource.square))
         lifesource.square.addThing(self)
         lifesource.pairWith(self)
         bot.tool = None
