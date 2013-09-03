@@ -176,6 +176,7 @@ class Board(object):
         Called to indicate that the bot has joined the game.
         """
         self.bots[bot.id] = bot
+        bot.board = self
         self.eventReceived(Event(bot, 'joined', self))
 
 
@@ -184,6 +185,7 @@ class Board(object):
         Called to indicate that the bot has quit the game.
         """
         self.bots.pop(bot.id)
+        bot.board = None
         self.eventReceived(Event(bot, 'quit', self))
 
 
@@ -544,7 +546,6 @@ class Bot(object):
     @ivar team: Team name
     @ivar name: Bot name
     @ivar tool: A tool I have.
-    @ivar portal: The portal where I landed.
     @ivar square: The square I'm in right now.
 
     @ivar energy_pool: List of the L{Energy} available to me.  This may
@@ -568,8 +569,8 @@ class Bot(object):
     _hitpoints = None
     dead = False
     tool = None
-    portal = None
     square = None
+    board = None
 
 
     def __init__(self, team, name, event_receiver=None):

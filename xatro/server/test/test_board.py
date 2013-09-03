@@ -525,9 +525,9 @@ class BotTest(TestCase):
         self.assertEqual(b.name, 'bob')
         self.assertEqual(b.team, 'foo')
         self.assertEqual(b.tool, None)
-        self.assertEqual(b.portal, None)
         self.assertEqual(b.square, None)
         self.assertNotEqual(b.id, None)
+        self.assertEqual(b.board, None)
 
 
     def test_IDictable(self):
@@ -1374,6 +1374,7 @@ class BoardTest(TestCase):
         board.addBot(bot)
         board.eventReceived.assert_called_once_with(Event(bot, 'joined', board))
         self.assertEqual(len(board.bots), 1)
+        self.assertEqual(bot.board, board)
 
 
     def test_removeBot(self):
@@ -1390,6 +1391,7 @@ class BoardTest(TestCase):
         board.removeBot(bot)
         board.eventReceived.assert_called_once_with(Event(bot, 'quit', board))
         self.assertEqual(len(board.bots), 0)
+        self.assertEqual(bot.board, None)
 
 
     def test_objects_getObject(self):
