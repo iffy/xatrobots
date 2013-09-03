@@ -4,26 +4,53 @@ from zope.interface.verify import verifyObject
 from mock import MagicMock, create_autospec
 
 from xatro.server.event import Event
-from xatro.server.game import GameShell, StaticRules
+from xatro.server.game import Game, StaticRules
 from xatro.server.board import Bot, Pylon
-from xatro.server.interface import IGameRules
+from xatro.server.interface import IGameRules, IEventReceiver
 from xatro.work import WorkMaker, Work, InvalidSolution
 from xatro.test.test_work import findResult
 
 
 
-class GameShellTest(TestCase):
+class GameTest(TestCase):
 
 
-    def test_attributes(self):
+    def test_IEventReceiver(self):
+        verifyObject(IEventReceiver, Game())
+
+
+    def test_subscribeAndUnsubscribe(self):
         """
-        A game should have a board and an event receiver.
+        You can subscribe a function to be called when events happen.
         """
-        rules = MagicMock()
-        game = GameShell(rules)
-        self.assertEqual(game.rules, rules)
-        self.assertEqual(game.board, None)
-        self.assertEqual(game.event_receiver, None)
+        game = Game()
+        c1 = []
+        c2 = []
+        game.subscribe(c1.append)
+        game.subscribe(c2.append)
+
+        game.eventReceived('foo')
+        self.assertEqual(c1, ['foo'])
+        self.assertEqual(c2, ['foo'])
+        
+        game.unsubscribe(c1.append)
+        game.eventReceived('bar')
+        self.assertEqual(c1, ['foo'])
+        self.assertEqual(c2, ['foo', 'bar'])
+
+
+    def test_errorInSubscriber(self):
+        """
+        An error in a subscriber will not prevent other subscribers from
+        getting the message
+        """
+        game = Game()
+        called = []
+        game.subscribe('not a function')
+        game.subscribe(called.append)
+
+        game.eventReceived('foo')
+        self.assertEqual(called, ['foo'])
 
 
 

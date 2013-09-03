@@ -1,23 +1,49 @@
+from twisted.python import log
 from zope.interface import implements
-from xatro.server.interface import IGameRules
+from xatro.server.interface import IGameRules, IEventReceiver
 from xatro.work import WorkMaker, InvalidSolution
 from xatro.server.board import Pylon
 
 
 
-class GameShell(object):
+class Game(object):
     """
     I am the place all the game pieces (squares, board, bots) go to get
     game-related specifics and to perform actions.
     """
 
-    rules = None
-    board = None
-    event_receiver = None
+    implements(IEventReceiver)
 
 
-    def __init__(self, rules=None):
-        self.rules = rules
+    def __init__(self):
+        self._event_receivers = []
+
+
+    def subscribe(self, func):
+        """
+        Subscribe to events this Game receives
+        """
+        self._event_receivers.append(func)
+
+
+    def unsubscribe(self, func):
+        """
+        Unsubscribe from events this Game receives.
+        """
+        self._event_receivers.remove(func)
+
+
+    def eventReceived(self, event):
+        """
+        An event was received.
+        """
+        for f in self._event_receivers:
+            try:
+                f(event)
+            except Exception as e:
+                log.err('Error calling event receiver:')
+                log.err(str(e))
+
 
 
 
