@@ -53,6 +53,31 @@ class GameTest(TestCase):
         self.assertEqual(called, ['foo'])
 
 
+    def test_setRules(self):
+        """
+        If you set the rules of a game, it will be subscribed to events and
+        be set as a public attribute of the game.
+        """
+        game = Game()
+        game.subscribe = MagicMock()
+        rules = MagicMock()
+        game.setRules(rules)
+        game.subscribe.assert_called_once_with(rules.eventReceived)
+        self.assertEqual(game.rules, rules)
+
+
+    def test_mkBoard(self):
+        """
+        You can make a board.
+        """
+        game = Game()
+        b = game.mkBoard()
+        self.assertEqual(b.game, game, "Should set the game attribute of the "
+                         "board")
+        self.assertEqual(game.board, b, "Should set the board attribute of the "
+                         "game")
+
+
 
 class StaticRulesTest(TestCase):
 

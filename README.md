@@ -272,6 +272,10 @@ in this phase, bots can do the following:
   Land the bot on the ground and link them to the portal held open by
   `bot`.  `password` is the password `bot` used when opening the portal.
 
+- `listSquares()`
+
+  Same as in Pre-Game phase.
+
 Once a bot lands, they will be in the Play Phase.
 
 

@@ -2,7 +2,7 @@ from twisted.python import log
 from zope.interface import implements
 from xatro.server.interface import IGameRules, IEventReceiver
 from xatro.work import WorkMaker, InvalidSolution
-from xatro.server.board import Pylon
+from xatro.server.board import Pylon, Board
 
 
 
@@ -10,9 +10,15 @@ class Game(object):
     """
     I am the place all the game pieces (squares, board, bots) go to get
     game-related specifics and to perform actions.
+
+    @ivar rules: The rules being used by this game.  Set this with L{setRules}.
+    @ivar board: The board being used for this game.  Set this with L{mkBoard}.
     """
 
     implements(IEventReceiver)
+
+    rules = None
+    board = None
 
 
     def __init__(self):
@@ -43,6 +49,26 @@ class Game(object):
             except Exception as e:
                 log.err('Error calling event receiver:')
                 log.err(str(e))
+
+
+    def setRules(self, rules):
+        """
+        Set the rules for this game.
+
+        @param rules: An L{IGameRules} implementing instance.
+        """
+        self.subscribe(rules.eventReceived)
+        self.rules = rules
+
+
+    def mkBoard(self):
+        """
+        Create a board for this game.
+
+        @return: A L{Board} instance.
+        """
+        self.board = Board(self)
+        return self.board
 
 
 
