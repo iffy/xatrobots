@@ -40,6 +40,7 @@ class BotPlayer(object):
             'breakLock',
             'addLock',
             'move',
+            'look',
         ]
 
 

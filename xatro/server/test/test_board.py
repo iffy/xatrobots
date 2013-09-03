@@ -1170,12 +1170,35 @@ class BotTest(TestCase):
 
     def test_move(self):
         """
-        Bot's can move to different squares.
+        Bots can move to different squares.
         """
         bot = self.mkBot(real_square=True)
         square2 = Square(MagicMock())
         bot.move(square2)
         self.assertEqual(bot.square, square2)
+
+
+    def test_look(self):
+        """
+        Bots can look at the square they're in.
+        """
+        bot = self.mkBot(real_square=True)
+        stuff = bot.look()
+        self.assertIn(bot, stuff, "Should see himself")
+
+        ore = Ore()
+        bot.square.addThing(ore)
+        stuff = bot.look()
+        self.assertIn(ore, stuff, "Should see the ore")
+
+
+    def test_look_noSquare(self):
+        """
+        If a bot isn't in a square, looking should return nothing.
+        """
+        bot = self.mkBot()
+        bot.square = None
+        self.assertEqual(bot.look(), [])
 
 
 

@@ -900,6 +900,15 @@ class Bot(object):
         square.addThing(self)
 
 
+    def look(self):
+        """
+        Look at the other things in a square.
+        """
+        if not self.square:
+            return []
+        return self.square.contents()
+
+
 
 class Energy(object):
     """
