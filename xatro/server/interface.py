@@ -112,13 +112,6 @@ class IGameRules(IEventReceiver):
         """
 
 
-
-class IGamePiece(Interface):
-
-
-    game = Attribute("Reference to the game")
-
-
 class IDictable(Interface):
 
 
