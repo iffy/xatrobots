@@ -189,13 +189,6 @@ class Square(object):
                 pass
 
 
-    def onGame(self, func, *args, **kwargs):
-        """
-        Call the named function on the game.
-        """
-        return self.board.onGame(func, *args, **kwargs)
-
-
     def addThing(self, thing):
         """
         Add a thing to this square.
