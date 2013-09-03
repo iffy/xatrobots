@@ -169,3 +169,9 @@ class StaticRules(object):
         elif action == 'breakLock':
             return args[0].tobreak
 
+
+    def isAllowed(self, bot, action, *args, **kwargs):
+        """
+        XXX
+        """
+

@@ -321,5 +321,13 @@ class StaticRulesTest(TestCase):
         self.assertEqual(work, 'foo', "Should use the pylon.tobreak attr")
 
 
+    def test_isAllowed_default(self):
+        """
+        Everything is allowed by default.
+        """
+        rules = StaticRules()
+        rules.isAllowed('foo', 'bar')
+
+
 
 

@@ -80,7 +80,8 @@ class BotPlayer(object):
         @param *args: Arguments to pass to function
         @param **kwargs: Keyword arguments to pass to the function.
 
-        @raise NotAllowed: If the function isn't one of the allowed functions.
+        @raise NotAllowed: If the function isn't one of the allowed functions
+            or if the action is currently not allowed by the rules of the game.
 
         @raise InvalidSolution: If the C{work_solution} provided does not
             satisfy the work requirement (if there is a work requirement).
@@ -92,6 +93,9 @@ class BotPlayer(object):
         """
         if func not in self._allowed_functions:
             raise NotAllowed(func)
+
+        # is it allowed?
+        self._rules.isAllowed(func, *args, **kwargs)
 
         # work requirement
         work = self._rules.workRequirement(self._bot, func, *args, **kwargs)

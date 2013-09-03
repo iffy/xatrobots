@@ -229,6 +229,26 @@ class BotPlayerTest(TestCase):
         self.assertEqual(r, 'foo result')
 
 
+    def test_callOnBot_isAllowed(self):
+        """
+        Things that aren't allowed, won't happen.
+        """
+        player = self.readyPlayer()
+        rules = player._rules
+
+        rules.energyRequirement.return_value = 0
+        rules.workRequirement.return_value = None
+        rules.isAllowed.side_effect = NotAllowed('not allowed')
+
+        player._bot.foo = MagicMock()
+        player._allowed_functions.append('foo')
+
+        self.assertRaises(NotAllowed, player.callOnBot, None, 'foo')
+        self.assertEqual(player._bot.foo.call_count, 0, "Should not have "
+                         "called through")
+
+
+
 
 
 

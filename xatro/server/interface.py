@@ -105,6 +105,13 @@ class IGameRules(IEventReceiver):
         """
 
 
+    def isAllowed(bot, action, *args, **kwargs):
+        """
+        Raises an exception if the action is not allowed,
+        otherwise returns None.
+        """
+
+
 
 class IGamePiece(Interface):
 
