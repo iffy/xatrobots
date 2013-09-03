@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head><title>xatrobots</title></head>
+    <body>
+        <div id="events"></div>  
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+        </script>
+        <script>
+        var source = new EventSource('./events');
+        source.addEventListener('ev', function(sse_message) {
+            console.log(sse_message);
+            var data = JSON.parse(sse_message.data);
+            messageReceived(data);
+        });
+
+        function messageReceived(ev) {
+            console.log(ev);
+            var elem = $('<div></div>')
+            elem.text(ev);
+            $('#events').append(elem);
+        }
+        </script>
+    </body>
+</html>
