@@ -1234,6 +1234,40 @@ class BotTest(TestCase):
         self.assertEqual(bot.listSquares(), [square])
 
 
+    def test_identify(self):
+        """
+        Should return the id, team name and name of a bot.
+        """
+        bot = self.mkBot(real_square=True)
+        bot.id = 'foo'
+        bot.name = 'name'
+        bot.team = 'the team'
+        self.assertEqual(bot.identify(), {
+            'id': 'foo',
+            'name': 'name',
+            'team': 'the team',
+        })
+
+
+    def test_status(self):
+        """
+        Should return the hitpoints, energy and location of this bot.
+        """
+        bot = self.mkBot(real_square=True)
+        bot.energy_pool.append('zap')
+        self.assertEqual(bot.status(), {
+            'hp': bot.hitpoints(),
+            'energy': 1,
+            'square': bot.square.id,
+        })
+        bot.square = None
+        self.assertEqual(bot.status(), {
+            'hp': bot.hitpoints(),
+            'energy': 1,
+            'square': None,
+        })
+
+
 
 
 class EnergyTest(TestCase):

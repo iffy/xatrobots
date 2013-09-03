@@ -578,17 +578,39 @@ class Bot(object):
 
 
     def toDict(self):
-        tool = None
-        if self.tool:
-            tool = self.tool.kind
+        """
+        The data that other bots see.
+        """
         return {
             'id': self.id,
             'hp': self.hitpoints(),
+            'energy': len(self.energy_pool),
             'object': 'bot',
+        }
+
+
+    def identify(self):
+        """
+        Get identity information.
+        """
+        return {
+            'id': self.id,
             'team': self.team,
             'name': self.name,
-            'tool': tool,
+        }
+
+
+    def status(self):
+        """
+        Get vital stats.
+        """
+        square_id = None
+        if self.square:
+            square_id = self.square.id
+        return {
             'energy': len(self.energy_pool),
+            'hp': self.hitpoints(),
+            'square': square_id,
         }
 
 

@@ -43,6 +43,8 @@ class BotPlayer(object):
             'look',
             'listSquares',
             'land',
+            'identify',
+            'status',
         ]
 
 
