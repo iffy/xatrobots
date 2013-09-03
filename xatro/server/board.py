@@ -83,6 +83,7 @@ class Board(object):
         self.game = game
         self.squares = {}
         self._squares_by_id = {}
+        self._objects = {}
         self.bots = {}
 
 
@@ -90,6 +91,10 @@ class Board(object):
         """
         Called when I receive an event.
         """
+        if event.verb == 'entered':
+            self._handle_entered(event)
+        elif event.verb == 'exited':
+            self._handle_exited(event)
         if self.game:
             self.game.eventReceived(event)
 
@@ -112,6 +117,39 @@ class Board(object):
 
         self.eventReceived(Event(self, 'square_added', square))
         return square
+
+
+    def objects(self, cls=None):
+        """
+        Get the objects I know about.
+        """
+        if cls:
+            return [x for x in self._objects.values() if isinstance(x, cls)]
+        return self._objects.values()
+
+
+    def getObject(self, object_id):
+        """
+        Get an object from the board.
+        """
+        try:
+            return self._objects[object_id]
+        except KeyError:
+            raise NotFound(object_id)
+
+
+    def _handle_entered(self, (obj, verb, square)):
+        """
+        An event signaling that an object entered a square happened.
+        """
+        self._objects[obj.id] = obj
+
+
+    def _handle_exited(self, (obj, verb, square)):
+        """
+        An event signaling that an object exited a square happened.
+        """
+        self._objects.pop(obj.id)
 
 
     def squareFromId(self, id):
@@ -175,7 +213,8 @@ class Square(object):
             'id': self.id,
             'object': 'square',
             'coordinates': self.coordinates,
-            'contents': [x.id for x in self.contents()],
+            'ore_count': [x.id for x in self.contents(Ore)],
+            'pylon_count': [x.id for x in self.contents(Pylon)],
             'adjacent_squares': [x.id for x in self.board.adjacentSquares(self)]
         }
 

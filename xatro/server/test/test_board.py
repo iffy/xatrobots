@@ -1273,8 +1273,9 @@ class BoardTest(TestCase):
         board = Board(game)
         self.assertEqual(board.game, game)
 
-        board.eventReceived('foo')
-        game.eventReceived.assert_called_once_with('foo')
+        ev = Event(None, None, None)
+        board.eventReceived(ev)
+        game.eventReceived.assert_called_once_with(ev)
 
 
     def test_eventReceived_noGame(self):
@@ -1282,7 +1283,7 @@ class BoardTest(TestCase):
         If there's no game, don't fail
         """
         board = Board()
-        board.eventReceived('foo')
+        board.eventReceived(Event('foo', 'bar', 'baz'))
 
 
     def test_addSquare(self):
@@ -1389,6 +1390,26 @@ class BoardTest(TestCase):
         board.removeBot(bot)
         board.eventReceived.assert_called_once_with(Event(bot, 'quit', board))
         self.assertEqual(len(board.bots), 0)
+
+
+    def test_objects_getObject(self):
+        """
+        When a thing is added to a square, add it to the things registry.  When
+        a thing is removed, remove it.
+        """
+        board = Board()
+        ore = Ore()
+        board.eventReceived(Event(ore, 'entered', None))
+
+        self.assertIn(ore, board.objects())
+        self.assertIn(ore, board.objects(Ore))
+        self.assertEqual([], board.objects(Bot))
+        self.assertEqual(board.getObject(ore.id), ore, "Should be able to "
+                         "get an object by its id")
+
+        board.eventReceived(Event(ore, 'exited', None))
+        self.assertNotIn(ore, board.objects())
+        self.assertRaises(NotFound, board.getObject, ore.id)
 
 
 
