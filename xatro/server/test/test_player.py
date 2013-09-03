@@ -85,6 +85,8 @@ class BotPlayerTest(TestCase):
     def test_allowed_functions(self):
         """
         These functions can be called by the users of the PlayerBot.
+
+        This seems like kind of a silly test.
         """
         expected = [
             'kill',
@@ -100,6 +102,7 @@ class BotPlayerTest(TestCase):
             'breakLock',
             'addLock',
             'move',
+            'look',
         ]
         player = BotPlayer(None)
         self.assertEqual(set(expected), set(player._allowed_functions))
