@@ -95,9 +95,20 @@ app.factory('State', function($http, $rootScope, Events) {
   Events.subscribe(this.eventReceived.bind(this));
   Events.start();
 
+  //---------------------------------------------------------------------------
   // handlers
+  //---------------------------------------------------------------------------
   this.handle_pylon_locks = function(pylon, number) {
     this.data.objects[pylon.id].locks = number;
+  }
+  this.handle_hp_set = function(bot, hp) {
+    this.data.objects[bot.id].hp = hp;
+  }
+  this.handle_hp = function(bot, amount) {
+    this.data.objects[bot.id].hp += amount;
+  }
+  this.handle_e_change = function(bot, amount) {
+    this.data.objects[bot.id].energy += amount;
   }
 
   // watch for changes in objects
@@ -135,31 +146,6 @@ app.factory('Events', function() {
 app.controller('BoardCtrl', function($scope, State) {
   $scope.data = State.data;
 });
-/*$(function() {
-  // get initial state
-  console.log('fetching current states');
-  $.ajax('./current_state', {
-    success: function(data) {
-      console.log(data);
-    }
-  })
-});
-*/
-/*
-  var source = new EventSource('./events');
-  source.addEventListener('ev', function(sse_message) {
-    console.log(sse_message);
-    var data = JSON.parse(sse_message.data);
-    messageReceived(data);
-  });
-
-  function messageReceived(ev) {
-    console.log(ev);
-    var elem = $('<div></div>')
-    elem.text(ev);
-    $('#events').append(elem);
-  }
-*/
 </script>
 </body>
 </html>
