@@ -20,33 +20,9 @@ class World(object):
         self.event_receiver = event_receiver
         self.objects = {}
         self._subscribers = defaultdict(lambda: [])
+        self._receivers = defaultdict(lambda: [])
         self._on_become = defaultdict(lambda: [])
         self._on_change = defaultdict(lambda: [])
-
-
-    def emit(self, event, object_id=None):
-        """
-        Emit an event to the world.  Optionally, identify the event as coming
-        from a particular object by specifying C{object_id}.  Functions
-        previously supplied to L{subscribeTo} will receive notifications about
-        events particular to objects.  All events will be called on my
-        C{event_receiver}.
-        """
-        try:
-            self.event_receiver(event)
-        except:
-            log.msg('Error in event receiver %r for event %r' % (
-                    self.event_receiver, event))
-            log.msg(traceback.format_exc())
-
-        if object_id:
-            for func in self._subscribers[object_id]:
-                try:
-                    func(event)
-                except:
-                    log.msg('Error in subscriber %r for %r for event %r' % (
-                            func, object_id, event))
-                    log.msg(traceback.format_exc())
 
 
     def create(self, kind):
@@ -116,6 +92,40 @@ class World(object):
 
     # events
 
+    def emit(self, event, object_id=None):
+        """
+        Emit an event to the world.  Optionally, identify the event as coming
+        from a particular object by specifying C{object_id}.  Functions
+        previously supplied to L{subscribeTo} will receive notifications about
+        events particular to objects.  All events will be called on my
+        C{event_receiver}.
+        """
+        try:
+            self.event_receiver(event)
+        except:
+            log.msg('Error in event receiver %r for event %r' % (
+                    self.event_receiver, event))
+            log.msg(traceback.format_exc())
+
+        if object_id:
+            for func in self._subscribers[object_id]:
+                try:
+                    func(event)
+                except:
+                    log.msg('Error in subscriber %r for %r for event %r' % (
+                            func, object_id, event))
+                    log.msg(traceback.format_exc())
+
+
+    def emitterFor(self, object_id):
+        """
+        Get a function that will take a single argument and emit events for
+        a particular object.
+        """
+        def f(event):
+            self.emit(event, object_id)
+        return f
+
 
     def subscribeTo(self, object_id, callback):
         """
@@ -129,6 +139,38 @@ class World(object):
         Unsubscribe from the events emitted by the given object.
         """
         self._subscribers[object_id].remove(callback)
+
+
+    def eventReceived(self, event, object_id):
+        """
+        Receive an event for a particular object.
+        """
+        for func in self._receivers[object_id]:
+            func(event)
+
+
+    def receiverFor(self, object_id):
+        """
+        Get a function that will take a single argument and call
+        L{eventReceived} for the given object.
+        """
+        def f(event):
+            self.eventReceived(event, object_id)
+        return f
+
+
+    def receiveFor(self, object_id, callback):
+        """
+        Subscribe to the events received by the given object.
+        """
+        self._receivers[object_id].append(callback)
+
+
+    def stopReceivingFor(self, object_id, callback):
+        """
+        Unsubscribe from the events received by the given object.
+        """
+        self._receivers[object_id].remove(callback)
 
 
 

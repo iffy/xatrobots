@@ -122,29 +122,6 @@ class WorldTest(TestCase):
         self.assertEqual(world.get(obj['id'])['foo'], [])
 
 
-    def test_subscribeTo(self):
-        """
-        You can subscribe to the events of a particular object.
-        """
-        ev = MagicMock()
-        world = World(ev)
-
-        obj = world.create('foo')
-        called = []
-        world.subscribeTo(obj['id'], called.append)
-        ev.reset_mock()
-
-        world.emit('event', obj['id'])
-        self.assertEqual(called, ['event'])
-        ev.assert_called_once_with('event')
-        ev.reset_mock()
-
-        world.unsubscribeFrom(obj['id'], called.append)
-        world.emit('event', obj['id'])
-        self.assertEqual(called, ['event'], "Should not have changed")
-        ev.assert_called_once_with('event')
-
-
     def test_onBecome(self):
         """
         You can get a Deferred which will fire when an attribute becomes a
@@ -234,6 +211,84 @@ class WorldTest(TestCase):
         ev1.assert_called_once_with('hey')
         ev2.assert_called_once_with('hey')
         ev3.assert_called_once_with('hey')
+
+
+    def test_emitterFor(self):
+        """
+        You can get a function that takes a single argument and emits events
+        for a particular object.
+        """
+        ev1 = MagicMock()
+        world = World(ev1)
+
+        ev2 = MagicMock()
+        world.subscribeTo('1234', ev2)
+
+        emitter = world.emitterFor('1234')
+        emitter('foo')
+
+        ev1.assert_called_once_with('foo')
+        ev2.assert_called_once_with('foo')
+
+
+    def test_subscribeTo(self):
+        """
+        You can subscribe to the events that are emitted by a particular object.
+        """
+        ev = MagicMock()
+        world = World(ev)
+
+        obj = world.create('foo')
+        called = []
+        world.subscribeTo(obj['id'], called.append)
+        ev.reset_mock()
+
+        world.emit('event', obj['id'])
+        self.assertEqual(called, ['event'])
+        ev.assert_called_once_with('event')
+        ev.reset_mock()
+
+        world.unsubscribeFrom(obj['id'], called.append)
+        world.emit('event', obj['id'])
+        self.assertEqual(called, ['event'], "Should not have changed")
+        ev.assert_called_once_with('event')
+
+
+    def test_receiveFor(self):
+        """
+        You can subscribe to the events that are received by a particular
+        object.
+        """
+        ev = MagicMock()
+        world = World(ev)
+
+        obj = world.create('foo')
+        called = []
+        world.receiveFor(obj['id'], called.append)
+        world.eventReceived('event', obj['id'])
+
+        self.assertEqual(called, ['event'])
+        called.pop()
+
+        world.stopReceivingFor(obj['id'], called.append)
+        world.eventReceived('foo', obj['id'])
+
+        self.assertEqual(called, [], "Should not receive")
+
+
+    def test_receiverFor(self):
+        """
+        You can get a function that will call eventReceived for a given object.
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')
+        called = []
+        world.receiveFor(obj['id'], called.append)
+
+        receiver = world.receiverFor(obj['id'])
+        receiver('hey')
+        self.assertEqual(called, ['hey'])
     
 
 
