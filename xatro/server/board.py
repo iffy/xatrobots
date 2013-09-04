@@ -74,7 +74,7 @@ class Board(object):
     up to the game.
     """
 
-    implements(IEventReceiver)
+    implements(IEventReceiver, IDictable)
 
     game = None
 
@@ -85,6 +85,12 @@ class Board(object):
         self._squares_by_id = {}
         self._objects = {}
         self.bots = {}
+
+
+    def toDict(self):
+        return {
+            'object': 'board',
+        }
 
 
     def eventReceived(self, event):
@@ -217,6 +223,7 @@ class Square(object):
             'coordinates': self.coordinates,
             'ore_count': len(self.contents(Ore)),
             'pylon_count': len(self.contents(Pylon)),
+            'bot_count': len(self.contents(Bot)),
         }
 
 
@@ -581,11 +588,17 @@ class Bot(object):
         """
         The data that other bots see.
         """
+        tool = None
+        if self.tool:
+            tool = self.tool.kind
         return {
             'id': self.id,
             'hp': self.hitpoints(),
             'energy': len(self.energy_pool),
             'object': 'bot',
+            'team': self.team,
+            'name': self.name,
+            'tool': tool,
         }
 
 
@@ -593,6 +606,7 @@ class Bot(object):
         """
         Get identity information.
         """
+        # XXX Maybe deprecate this
         return {
             'id': self.id,
             'team': self.team,
@@ -774,7 +788,7 @@ class Bot(object):
         self.energy_pool.extend(energies)
         for e in energies:
             e.done().addCallback(self._sharedEnergyGone, e)
-        self.emit(Event(self, 'e_received', 1))
+        self.emit(Event(self, 'e_change', 1))
 
 
     def _sharedEnergyGone(self, reason, energy):
@@ -786,6 +800,7 @@ class Bot(object):
         if energy in self.energy_pool:
             self.energy_pool.remove(energy)
             self.emit(Event(self, 'e_wasted', 1))
+            self.emit(Event(self, 'e_change', -1))
 
     
     @requireSquare
@@ -804,6 +819,7 @@ class Bot(object):
             e = self.energy_pool.pop()
             e.consume()
         self.emit(Event(self, 'e_consumed', amount))
+        self.emit(Event(self, 'e_change', -amount))
 
 
     @requireSquare
@@ -825,6 +841,7 @@ class Bot(object):
         energies = self.energy_pool[:amount]
         self.energy_pool = self.energy_pool[amount:]
         self.emit(Event(self, 'e_shared', bot))
+        self.emit(Event(self, 'e_change', -amount))
         bot.receiveEnergies(energies)
 
 

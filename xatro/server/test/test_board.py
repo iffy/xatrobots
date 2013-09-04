@@ -705,7 +705,8 @@ class BotTest(TestCase):
         self.assertEqual(b1.generated_energy, None)
         self.assertEqual(b2.energy_pool, [], "Should remove energy from other "
                          "bot's pool")
-        b2.emit.assert_called_once_with(Event(b2, 'e_wasted', 1))
+        b2.emit.assert_any_call(Event(b2, 'e_wasted', 1))
+        b2.emit.assert_any_call(Event(b2, 'e_change', -1))
 
 
     def test_kill_tool(self):
@@ -731,6 +732,7 @@ class BotTest(TestCase):
                         "Should set generated_energy")
         self.assertEqual(b.energy_pool, [b.generated_energy])
         b.emit.assert_any_call(Event(b, 'charged', None))
+        b.emit.assert_any_call(Event(b, 'e_change', 1))
 
 
     def test_charge_tooSoon(self):
@@ -751,6 +753,7 @@ class BotTest(TestCase):
 
         # bot consumes it
         b.consumeEnergy(1)
+        b.emit.assert_any_call(Event(b, 'e_change', -1))
         b.charge()
 
         # someone else consumes it
@@ -789,6 +792,7 @@ class BotTest(TestCase):
 
         b.consumeEnergy(1)
         b.emit.assert_any_call(Event(b, 'e_gone', None))
+        b.emit.assert_any_call(Event(b, 'e_change', -1))
 
 
     def test_receiveEnergies(self):
@@ -799,7 +803,7 @@ class BotTest(TestCase):
         energy = Energy()
         b.receiveEnergies([energy])
         self.assertIn(energy, b.energy_pool, "Bot should know it has it")
-        b.emit.assert_called_once_with(Event(b, 'e_received', 1))
+        b.emit.assert_called_once_with(Event(b, 'e_change', 1))
 
 
     def test_consumeEnergy(self):
@@ -815,7 +819,8 @@ class BotTest(TestCase):
         b.consumeEnergy(1)
         self.assertEqual(self.successResultOf(energy.done()), 'consumed')
         self.assertEqual(b.energy_pool, [])
-        b.emit.assert_called_once_with(Event(b, 'e_consumed', 1))
+        b.emit.assert_any_call(Event(b, 'e_consumed', 1))
+        b.emit.assert_any_call(Event(b, 'e_change', -1))
 
 
     def test_consumeEnergy_notEnough(self):
@@ -845,6 +850,7 @@ class BotTest(TestCase):
         bot1.shareEnergy(1, bot2)
         bot2.receiveEnergies.assert_called_once_with([e])
         bot1.emit.assert_any_call(Event(bot1, 'e_shared', bot2))
+        bot1.emit.assert_any_call(Event(bot1, 'e_change', -1))
         self.assertEqual(bot1.energy_pool, [], "Should remove from bot1")
 
 
@@ -1306,6 +1312,10 @@ class EnergyTest(TestCase):
 
 class BoardTest(TestCase):
 
+
+    def test_IDictable(self):
+        verifyObject(IDictable, Board())
+        
 
     def test_IEventReceiver(self):
         verifyObject(IEventReceiver, Board())
