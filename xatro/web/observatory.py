@@ -4,6 +4,9 @@ from klein import Klein
 
 import json
 
+from xatro.server.state import GameState
+
+
 
 def toDictObjects(obj):
     func = getattr(obj, 'toDict', None)
@@ -20,15 +23,14 @@ def toJson(thing):
 
 class GameObserver(object):
     """
-    I observe a single game.
+    I observe a single game and maintain my own copy of the state of the game.
     """
 
     app = Klein()
 
 
-    def __init__(self, game, static_root):
-        self.game = game
-        game.subscribe(self.eventReceived)
+    def __init__(self, static_root):
+        self._state = GameState()
         self.static_root = static_root
         self._observers = []
 
@@ -37,22 +39,26 @@ class GameObserver(object):
         """
         Game event received.
         """
+        self._state.eventReceived(event)
         self.sendMessage('ev', toJson(event))
 
 
     @app.route('/game')
     def html(self, request):
         """
-        HTML that will source /status and /events for more information.
+        HTML that will source /current_state and /events for more information.
         """
         return File(self.static_root.child('game.html').path)
 
 
-    @app.route('/status')
-    def status(self, request):
+    @app.route('/current_state')
+    def current_state(self, request):
         """
         Return the current state of the game.
         """
+        request.setHeader('Content-Type', 'application/json')
+        return json.dumps(self._state.objects)
+
 
     @app.route('/events')
     def events(self, request):

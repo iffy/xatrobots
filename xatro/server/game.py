@@ -46,9 +46,10 @@ class Game(object):
         for f in self._event_receivers:
             try:
                 f(event)
-            except Exception as e:
-                log.err('Error calling event receiver:')
-                log.err(str(e))
+            except:
+                import traceback
+                log.err('Error calling event receiver')
+                log.err(traceback.format_exc())
 
 
     def setRules(self, rules):

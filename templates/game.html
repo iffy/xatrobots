@@ -1,24 +1,165 @@
 <!doctype html>
 <html>
-    <head><title>xatrobots</title></head>
-    <body>
-        <div id="events"></div>  
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
-        </script>
-        <script>
-        var source = new EventSource('./events');
-        source.addEventListener('ev', function(sse_message) {
-            console.log(sse_message);
-            var data = JSON.parse(sse_message.data);
-            messageReceived(data);
-        });
+<head>
+  <title>xatrobots</title>
+  <style>
+  * {
+    box-sizing: border-box;
+    font-family: monospace;
+  }
+  .board {
+    position: relative;
+    margin: 1em;
+  }
+  .square {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    background: #ddd;
+    padding: 1em;
+  }
+  .square .thing {
+    border-radius: 2px;
+    width: 16px;
+    height: 16px;
+    margin: 2px;
+    display: inline-block;
+    text-align: center;
+    line-height: 16px;
+  }
+  .ore {
+    background: #000;
+  }
+  .pylon {
+    background: #fff;
+  }
+  .lifesource {
+    background: #f90;
+  }
+  .bot {
+    background: #999;
+  }
+  .team1 {
+    border: 2px solid #f00;
+  }
+  .team2 {
+    border: 2px solid #00f;
+  }
+  .team3 {
+    border: 2px solid #0f0;
+  }
+  </style>
+</head>
+<body ng-app="game">
+  <div id="events"></div>
 
-        function messageReceived(ev) {
-            console.log(ev);
-            var elem = $('<div></div>')
-            elem.text(ev);
-            $('#events').append(elem);
-        }
-        </script>
-    </body>
+  <div ng-controller="BoardCtrl">
+    <div class="board">
+      <div class="square" ng-repeat="square in data.object_list|filter:{object:'square'}" style="left: {{ 200 * square.coordinates[0] }}px; top: {{ 200 * square.coordinates[1] }}px;">
+        <div ng-repeat="pylon_id in square.contents.pylon" class="thing pylon">{{ data.objects[pylon_id].locks }}</div>
+        <div ng-repeat="lifesource_id in square.contents.lifesource" class="thing lifesource"></div>
+        <div ng-repeat="ore_id in square.contents.ore" class="thing ore"></div>
+        <div ng-repeat="id in square.contents.bot" class="thing bot team1"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+  </script>
+
+<script>
+var app = angular.module('game', []);
+
+app.factory('State', function($http, $rootScope, Events) {
+  this.data = {
+    objects: {},
+    object_list: [],
+  };
+
+  // Get initial state
+  $http.get('./current_state').then(function(response) {
+    this.data.objects = response.data;
+  }.bind(this));
+
+  // Get event feed going
+  this.eventReceived = function(ev) {
+    var handler = this['handle_' + ev[1]];
+    if (handler != undefined) {
+      handler = handler.bind(this);
+      return $rootScope.$apply(function() {
+        return handler(ev[0], ev[2]);
+      });
+    }
+  }
+  Events.subscribe(this.eventReceived.bind(this));
+  Events.start();
+
+  // handlers
+  this.handle_pylon_locks = function(pylon, number) {
+    this.data.objects[pylon.id].locks = number;
+  }
+
+  // watch for changes in objects
+  $rootScope.$watch(function() {
+    return this.data.objects;
+  }.bind(this), function(newval) {
+    this.data.object_list = [];
+    angular.forEach(this.data.objects, function(val) {
+      this.data.object_list.push(val);
+    }.bind(this));
+  }.bind(this), true);
+  return this;
+});
+
+app.factory('Events', function() {
+  this.subscribers = [];
+  this.subscribe = function(func) {
+    this.subscribers.push(func);
+  }
+  this.eventReceived = function(ev) {
+    angular.forEach(this.subscribers, function(subscriber) {
+      subscriber(ev);
+    })
+  }
+  this.start = function() {
+    var source = new EventSource('./events');
+    source.addEventListener('ev', function(sse_message) {
+      var data = JSON.parse(sse_message.data);
+      this.eventReceived(data);
+    }.bind(this));
+  }
+  return this;
+});
+
+app.controller('BoardCtrl', function($scope, State) {
+  $scope.data = State.data;
+});
+/*$(function() {
+  // get initial state
+  console.log('fetching current states');
+  $.ajax('./current_state', {
+    success: function(data) {
+      console.log(data);
+    }
+  })
+});
+*/
+/*
+  var source = new EventSource('./events');
+  source.addEventListener('ev', function(sse_message) {
+    console.log(sse_message);
+    var data = JSON.parse(sse_message.data);
+    messageReceived(data);
+  });
+
+  function messageReceived(ev) {
+    console.log(ev);
+    var elem = $('<div></div>')
+    elem.text(ev);
+    $('#events').append(elem);
+  }
+*/
+</script>
+</body>
 </html>
