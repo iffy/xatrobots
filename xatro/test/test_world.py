@@ -1,9 +1,10 @@
 from twisted.trial.unittest import TestCase
+from twisted.internet import defer
 
 from mock import MagicMock
 
 from xatro.world import World
-from xatro.event import Created, Destroyed, AttrSet, Moved
+from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 
 
 class WorldTest(TestCase):
@@ -16,7 +17,7 @@ class WorldTest(TestCase):
         """
         called = []
         world = World(called.append)
-        world.eventReceived('foo')
+        world.emit('foo')
         self.assertEqual(called, ['foo'], "Should receive the event")
 
 
@@ -88,57 +89,135 @@ class WorldTest(TestCase):
         self.assertNotIn(obj['id'], world.objects)
 
 
-    def test_destroy_withinContainer(self):
+    def test_addItem(self):
         """
-        If you destroy something when it's in a container, remove it from the
-        container.
+        You can add items to a list
         """
         ev = MagicMock()
         world = World(ev)
         obj = world.create('foo')
-        container = world.create('cont')
-        world.move(obj['id'], container['id'])
 
         ev.reset_mock()
-        world.destroy(obj['id'])
+        world.addItem(obj['id'], 'foo', 'bar')
 
-        self.assertNotIn(obj['id'], world.objects[container['id']]['contents'])
-        self.assertEqual(obj['location'], None)
+        ev.assert_any_call(ItemAdded(obj['id'], 'foo', 'bar'))
+
+        obj = world.get(obj['id'])
+        self.assertEqual(obj['foo'], ['bar'])
 
 
-    def test_move(self):
+    def test_removeItem(self):
         """
-        You can put objects inside other objects.
+        You can remove items from a list
         """
         ev = MagicMock()
         world = World(ev)
-        c1 = world.create('container')
-        c2 = world.create('container')
-        thing = world.create('bar')
+        obj = world.create('foo')
+        world.addItem(obj['id'], 'foo', 'bar')
+        
+        ev.reset_mock()
+        world.removeItem(obj['id'], 'foo', 'bar')
 
+        ev.assert_any_call(ItemRemoved(obj['id'], 'foo', 'bar'))
+        self.assertEqual(world.get(obj['id'])['foo'], [])
+
+
+    def test_subscribeTo(self):
+        """
+        You can subscribe to the events of a particular object.
+        """
+        ev = MagicMock()
+        world = World(ev)
+
+        obj = world.create('foo')
+        called = []
+        world.subscribeTo(obj['id'], called.append)
         ev.reset_mock()
 
-        world.move(thing['id'], c1['id'])
-        ev.assert_any_call(Moved(thing['id'], None, c1['id']))
-        obj = world.get(c1['id'])
-        self.assertIn(thing['id'], obj['contents'])
-        self.assertEqual(thing['location'], c1['id'])
-
+        world.emit('event', obj['id'])
+        self.assertEqual(called, ['event'])
+        ev.assert_called_once_with('event')
         ev.reset_mock()
 
-        world.move(thing['id'], c2['id'])
-        ev.assert_any_call(Moved(thing['id'], c1['id'], c2['id']))
-        c1 = world.get(c1['id'])
-        c2 = world.get(c2['id'])
-        self.assertNotIn(thing['id'], c1['contents'])
-        self.assertIn(thing['id'], c2['contents'])
-        self.assertEqual(thing['location'], c2['id'])
+        world.unsubscribeFrom(obj['id'], called.append)
+        world.emit('event', obj['id'])
+        self.assertEqual(called, ['event'], "Should not have changed")
+        ev.assert_called_once_with('event')
 
-        ev.reset_mock()
 
-        world.move(thing['id'], None)
-        ev.assert_any_call(Moved(thing['id'], c2['id'], None))
-        self.assertNotIn(thing['id'], c2['contents'])
+    def test_onBecome(self):
+        """
+        You can get a Deferred which will fire when an attribute becomes a
+        particular value.
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')
+        d = world.onBecome(obj['id'], 'hey', 3)
+        self.assertFalse(d.called)
+
+        world.setAttr(obj['id'], 'hey', 3)
+        self.assertEqual(self.successResultOf(d), 3)
+
+        # make sure it isn't called again
+        world.setAttr(obj['id'], 'hey', 2)
+        world.setAttr(obj['id'], 'hey', 3)
+
+
+    def test_onBecome_cancel(self):
+        """
+        You can cancel the deferred returned by onBecome
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')
+        d = world.onBecome(obj['id'], 'hey', 3)
+        d.cancel()
+
+        world.setAttr(obj['id'], 'hey', 3)
+
+        self.assertFailure(d, defer.CancelledError)
+
+
+    def test_onChange(self):
+        """
+        You can get a Deferred which will fire when an attribute changes
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')
+        d = world.onChange(obj['id'], 'hey')
+        self.assertFalse(d.called)
+
+        world.setAttr(obj['id'], 'ho', 8)
+        self.assertFalse(d.called)
+
+        world.setAttr(obj['id'], 'hey', 3)
+        self.assertEqual(self.successResultOf(d), 3)
+
+        # make sure it isn't called again
+        world.setAttr(obj['id'], 'hey', 2)
+
+
+    def test_onChange_cancel(self):
+        """
+        You can cancel the deferred returned by onChange
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')
+        d = world.onChange(obj['id'], 'hey')
+        d.cancel()
+
+        world.setAttr(obj['id'], 'hey', 3)
+
+        self.assertFailure(d, defer.CancelledError)
+    
+
+
+
+
+
 
 
 
