@@ -212,6 +212,28 @@ class WorldTest(TestCase):
         world.setAttr(obj['id'], 'hey', 3)
 
         self.assertFailure(d, defer.CancelledError)
+
+
+    def test_emit_Exception(self):
+        """
+        Exceptions caused by event receivers should not prevent other event
+        receivers from receiving the events.
+        """
+        ev1 = MagicMock()
+        ev1.side_effect = Exception()
+        world = World(ev1)
+
+        ev2 = MagicMock()
+        ev2.side_effect = Exception()
+        world.subscribeTo('1234', ev2)
+
+        ev3 = MagicMock()
+        world.subscribeTo('1234', ev3)
+
+        world.emit('hey', '1234')
+        ev1.assert_called_once_with('hey')
+        ev2.assert_called_once_with('hey')
+        ev3.assert_called_once_with('hey')
     
 
 

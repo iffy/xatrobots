@@ -1,4 +1,6 @@
 from twisted.internet import defer
+from twisted.python import log
+import traceback
 
 from uuid import uuid4
 
@@ -25,12 +27,26 @@ class World(object):
     def emit(self, event, object_id=None):
         """
         Emit an event to the world.  Optionally, identify the event as coming
-        from a particular object by specifying C{object_id}.
+        from a particular object by specifying C{object_id}.  Functions
+        previously supplied to L{subscribeTo} will receive notifications about
+        events particular to objects.  All events will be called on my
+        C{event_receiver}.
         """
-        self.event_receiver(event)
+        try:
+            self.event_receiver(event)
+        except:
+            log.msg('Error in event receiver %r for event %r' % (
+                    self.event_receiver, event))
+            log.msg(traceback.format_exc())
+
         if object_id:
             for func in self._subscribers[object_id]:
-                func(event)
+                try:
+                    func(event)
+                except:
+                    log.msg('Error in subscriber %r for %r for event %r' % (
+                            func, object_id, event))
+                    log.msg(traceback.format_exc())
 
 
     def create(self, kind):
