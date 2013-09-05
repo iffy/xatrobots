@@ -8,6 +8,7 @@ from collections import defaultdict
 from functools import wraps
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
+from xatro.event import ActionPerformed
 from xatro.state import State
 
 
@@ -31,7 +32,12 @@ class World(object):
     """
 
 
-    def __init__(self, event_receiver):
+    def __init__(self, event_receiver, engine=None):
+        """
+        @param event_receiver: Function to be called with every emitted event.
+        @param engine: Game engine.
+        """
+        self.engine = engine
         self._state = State()
         self.objects = self._state.state
         self.event_receiver = event_receiver
@@ -40,6 +46,17 @@ class World(object):
         self._on_become = defaultdict(lambda: [])
         self._on_change = defaultdict(lambda: [])
         self._on_event = defaultdict(lambda: [])
+
+
+    def execute(self, action):
+        """
+        Execute an action according to the rules of this world's game engine.
+
+        @param action: An L{IAction}-implementing instance.
+        """
+        ret = self.engine.execute(self, action)
+        self.emit(ActionPerformed(action), action.emitterId())
+        return ret
 
 
     def create(self, kind, receive_emissions=True):
@@ -138,6 +155,7 @@ class World(object):
                 log.msg('Error in subscriber %r for %r for event %r' % (
                         func, object_id, event))
                 log.msg(traceback.format_exc())
+        
         # notify Deferreds waiting for this particular event
         events = self._on_event[(object_id, event)]
         while events:

@@ -1,6 +1,6 @@
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
-from functools import wraps
+
 
 
 class Mapper(object):

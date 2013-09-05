@@ -1,5 +1,5 @@
 from twisted.application import service, internet
-from twisted.internet import endpoints, protocol
+# from twisted.internet import endpoints
 from twisted.python import log
 from twisted.python import usage
 
@@ -39,19 +39,19 @@ class SetupService(service.Service):
 
 
 def makeService(options):
-    
+
     world = World()
-    from twisted.internet import reactor
+    # from twisted.internet import reactor
 
-    f = ExampleFactory(debug=debug)
-    endpoint = endpoints.serverFromString(reactor, options['endpoint'])
-    server_service = internet.StreamServerEndpointService(endpoint, f)
-    server_service.setName('Example Server')
+    # f = ExampleFactory(debug=debug)
+    # endpoint = endpoints.serverFromString(reactor, options['endpoint'])
+    # server_service = internet.StreamServerEndpointService(endpoint, f)
+    # server_service.setName('Example Server')
 
-    setup_service = SetupService(reactor)
+    # setup_service = SetupService(reactor)
 
-    ms = service.MultiService()
-    server_service.setServiceParent(ms)
-    setup_service.setServiceParent(ms)
+    # ms = service.MultiService()
+    # server_service.setServiceParent(ms)
+    # setup_service.setServiceParent(ms)
 
-    return ms
+    # return ms

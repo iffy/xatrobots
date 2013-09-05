@@ -1,13 +1,19 @@
 from twisted.trial.unittest import TestCase
+from zope.interface.verify import verifyObject
 
 from mock import MagicMock
 
+from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge
 
 
 
 class MoveTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, Move('foo', 'bar'))
 
 
     def test_execute(self):

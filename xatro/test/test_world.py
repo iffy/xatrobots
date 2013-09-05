@@ -5,6 +5,8 @@ from mock import MagicMock
 
 from xatro.world import World
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
+from xatro.event import ActionPerformed
+
 
 
 class WorldTest(TestCase):
@@ -18,6 +20,28 @@ class WorldTest(TestCase):
         world = World(ev)
         world.emit('something', 'foo')
         ev.assert_called_once_with('something')
+
+
+    def test_execute(self):
+        """
+        Asking the world to execute a command will ask the (game) engine to
+        execute the command.
+        """
+        engine = MagicMock()
+        engine.execute.return_value = 'response'
+        
+        world = World(MagicMock(), engine)
+        world.emit = MagicMock()
+
+        action = MagicMock()
+        action.emitterId.return_value = 'I did it'
+
+        r = world.execute(action)
+        
+        engine.execute.assert_called_once_with(world, action)
+        self.assertEqual(r, 'response', "Should return the result of execution")
+        world.emit.assert_called_once_with(ActionPerformed(action), 'I did it')
+
 
 
     def test_create(self):
