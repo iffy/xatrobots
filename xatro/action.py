@@ -54,6 +54,27 @@ class Move(object):
 
 
 
+def _receiveEnergy(world, obj_id, energy_id):
+    """
+    Receive energy, and appropriately watch for the energy's destruction.
+    """
+    # give this thing some energy
+    world.addItem(obj_id, 'energy', energy_id)
+
+    # wait for it to be destroyed
+    d = world.onEvent(energy_id, Destroyed(energy_id))
+    d.addCallback(_rmFromEnergyPool, world, obj_id)
+    world.setAttr(energy_id, 'onDestroy', d)
+
+
+def _rmFromEnergyPool(ev, world, obj_id):
+    """
+    Remove energy from an object's energy pool.
+    """
+    world.removeItem(obj_id, 'energy', ev.id)
+
+
+
 class Charge(object):
     """
     Create some energy.
@@ -77,13 +98,7 @@ class Charge(object):
 
         thing = world.get(thing_id)
 
-        # give this thing some energy
-        world.addItem(thing_id, 'energy', e['id'])
-
-        # wait for it to be destroyed
-        d = world.onEvent(e['id'], Destroyed(e['id']))
-        d.addCallback(self._rmFromEnergy, world, thing_id)
-        world.setAttr(e['id'], 'onDestroy', d)
+        _receiveEnergy(world, thing_id, e['id'])
 
         # record that this thing created energy
         world.setAttr(thing_id, 'created_energy',
@@ -98,7 +113,7 @@ class Charge(object):
         """
         Remove energy from a thing's list of energy.
         """
-        world.removeItem(thing_id, 'energy', ev.id)
+        
 
 
     def _decCreatedEnergy(self, ev, world, thing_id):
