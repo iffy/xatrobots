@@ -16,6 +16,10 @@ class MoveTest(TestCase):
         verifyObject(IAction, Move('foo', 'bar'))
 
 
+    def test_emitters(self):
+        self.assertEqual(Move('foo', 'bar').emitters(), ['foo'])
+
+
     def test_execute(self):
         """
         Moving to a new location should:
@@ -153,6 +157,14 @@ class MoveTest(TestCase):
 
 
 class ChargeTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, Charge('foo'))
+
+
+    def test_emitters(self):
+        self.assertEqual(Charge('foo').emitters(), ['foo'])
 
 
     def test_charge(self):

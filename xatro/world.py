@@ -55,7 +55,9 @@ class World(object):
         @param action: An L{IAction}-implementing instance.
         """
         ret = self.engine.execute(self, action)
-        self.emit(ActionPerformed(action), action.emitterId())
+        event = ActionPerformed(action)
+        for object_id in action.emitters():
+            self.emit(event, object_id)
         return ret
 
 

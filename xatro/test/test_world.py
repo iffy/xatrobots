@@ -34,7 +34,7 @@ class WorldTest(TestCase):
         world.emit = MagicMock()
 
         action = MagicMock()
-        action.emitterId.return_value = 'I did it'
+        action.emitters.return_value = ['I did it']
 
         r = world.execute(action)
         

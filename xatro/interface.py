@@ -4,7 +4,7 @@ from zope.interface import Interface
 class IAction(Interface):
 
 
-    def execute(self, world):
+    def execute(world):
         """
         Do what it means to do this action.  Do not be limited by rules.
         Any rule-limiting will happen prior to this being called.
@@ -13,8 +13,8 @@ class IAction(Interface):
         """
 
 
-    def emitterId(self):
+    def emitters():
         """
-        Return the world id of the thing doing this action (so that appropriate
-        events can be emitted).
+        Return a list of the world ids of the things that should emit this
+        event.
         """

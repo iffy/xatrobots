@@ -1,10 +1,15 @@
 
+from zope.interface import implements
+from xatro.interface import IAction
+
 
 
 class Move(object):
     """
     Move an object from where it is to a new location.
     """
+
+    implements(IAction)
 
 
     def __init__(self, thing, dst):
@@ -14,6 +19,10 @@ class Move(object):
         """
         self.thing = thing
         self.dst = dst
+
+
+    def emitters(self):
+        return [self.thing]
 
 
     def execute(self, world):
@@ -48,8 +57,15 @@ class Charge(object):
     Create some energy.
     """
 
+    implements(IAction)
+
+
     def __init__(self, thing):
         self.thing = thing
+
+
+    def emitters(self):
+        return [self.thing]
 
 
     def execute(self, world):
