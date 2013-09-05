@@ -1,6 +1,5 @@
 from twisted.application import service, internet
 from twisted.internet import endpoints
-from twisted.python import log
 from twisted.python import usage
 
 

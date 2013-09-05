@@ -1,3 +1,4 @@
+from twisted.python import log
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 
@@ -43,7 +44,7 @@ class State(object):
 
 
     def eventReceived(self, event):
-        print event
+        log.msg(event)
         try:
             return self.mapper.call(event.__class__, event)
         except KeyError:

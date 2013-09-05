@@ -16,9 +16,10 @@ class AvatarTest(TestCase):
         An avatar has a list of available command classes.
         """
         a = Avatar()
-        self.assertEqual(a.availableCommands(), [])
-        a._available_commands.append('foo')
-        self.assertEqual(a.availableCommands(), ['foo'])
+        self.assertEqual(a.availableCommands(), {})
+        
+        a = Avatar(commands={'foo': 'bar'})
+        self.assertEqual(a.availableCommands(), {'foo': 'bar'})
 
 
     def test_game_piece(self):

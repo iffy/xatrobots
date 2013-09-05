@@ -12,9 +12,9 @@ class Avatar(object):
     _game_piece = None
     _world = None
 
-    def __init__(self, world=None):
+    def __init__(self, world=None, commands=None):
         self._world = world
-        self._available_commands = []
+        self._available_commands = commands or {}
         self._pending_events = []
         self._eventReceived = self._pending_events.append
 

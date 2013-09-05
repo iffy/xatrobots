@@ -79,6 +79,14 @@ class BotLineProtocol(LineOnlyReceiver):
         self.avatar.quit()
 
 
+    def lineReceived(self, line):
+        # XXX this is really fragile, but hey... it's okay for a demo.
+        parts = line.split(' ')
+        cmd_name = parts[0]
+        cmd_cls = self.avatar.availableCommands()[cmd_name.lower()]
+        self.avatar.execute(cmd_cls, *parts[1:])
+
+
 
 class BotFactory(protocol.Factory):
     """
@@ -88,12 +96,13 @@ class BotFactory(protocol.Factory):
     protocol = BotLineProtocol
 
 
-    def __init__(self, world):
+    def __init__(self, world, commands=None):
         self.world = world
+        self.commands = commands
 
 
     def buildProtocol(self, addr):
-        avatar = Avatar(self.world)
+        avatar = Avatar(self.world, self.commands)
         game_piece = self.world.create('bot')['id']
         avatar.setGamePiece(game_piece)
 

@@ -6,9 +6,11 @@ import json
 
 from xatro.server.lineproto import EventFeedLineFactory, EventFeedLineProtocol
 from xatro.server.lineproto import BotFactory, BotLineProtocol
+
 from xatro.world import World
 from xatro.avatar import Avatar
 from xatro.event import AttrSet
+from xatro.action import Move
 
 
 
@@ -97,10 +99,11 @@ class BotFactoryTest(TestCase):
     def test_buildProtocol(self):
         """
         When a protocol is made, the protocol should be given an Avatar
-        that is connected to a 'bot' in the world.
+        that is connected to a 'bot' in the world.  Also, the avatar should be
+        given a copy of the available commands.
         """
         world = World(MagicMock())
-        f = BotFactory(world)
+        f = BotFactory(world, {'foo': 'bar'})
         proto = f.buildProtocol(None)
         self.assertEqual(proto.factory, f)
         self.assertTrue(isinstance(proto, BotLineProtocol))
@@ -109,6 +112,7 @@ class BotFactoryTest(TestCase):
                          "the world")
         self.assertNotEqual(proto.avatar._game_piece, None, "Should have a game"
                             " piece")
+        self.assertEqual(proto.avatar.availableCommands(), {'foo': 'bar'})
         obj = world.get(proto.avatar._game_piece)
         self.assertEqual(obj['kind'], 'bot', "Should make a bot in the world")
 
@@ -151,6 +155,22 @@ class BotLineProtocolTest(TestCase):
         proto = BotLineProtocol(avatar)
         proto.connectionLost('reason')
         avatar.quit.assert_called_once_with()
+
+
+    def test_lineReceived(self):
+        """
+        Lines received are intrepretted as a space-separated argument list
+        and executed as a command on the avatar.
+        """
+        avatar = MagicMock()
+        avatar.availableCommands = lambda: {'move': Move}
+        avatar.execute.return_value = ('ret', 'val')
+        
+        proto = BotLineProtocol(avatar)
+        proto.makeConnection(StringTransport())
+
+        proto.lineReceived('move east-23 twice 3')
+        avatar.execute.assert_called_once_with(Move, 'east-23', 'twice', '3')
 
 
 
