@@ -29,6 +29,13 @@ class Avatar(object):
         self._world.receiveFor(self._game_piece, self.eventReceived)
 
 
+    def quit(self):
+        """
+        Quit from the game/world/server.
+        """
+        self._world.destroy(self._game_piece)
+
+
     def eventReceived(self, event):
         """
         An event from the game/world is received.

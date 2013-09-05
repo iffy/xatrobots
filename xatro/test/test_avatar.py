@@ -128,3 +128,16 @@ class AvatarTest(TestCase):
         self.assertEqual(r, 'foo', "Should return result of execution")
 
 
+    def test_quit(self):
+        """
+        When an avatar quits, their game piece should be destroyed.
+        """
+        world = MagicMock()
+
+        a = Avatar(world)
+        a.setGamePiece('foo')
+        a.quit()
+
+        world.destroy.assert_called_once_with('foo')
+
+
