@@ -307,7 +307,37 @@ class WorldTest(TestCase):
         """
         world = World(MagicMock())
         self.assertEqual(world.receiverFor('foo'), world.receiverFor('foo'))
-    
+
+
+    def test_selfReceiving(self):
+        """
+        All things should receive their own events by default.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+
+        called = []
+        world.receiveFor(thing['id'], called.append)
+
+        world.emit('foo', thing['id'])
+        self.assertEqual(called, ['foo'], "Things should receive their own "
+                         "emissions")
+
+
+    def test_disable_selfReceiving(self):
+        """
+        You can disable self-receipt by creating things with a special arg.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo', receive_emissions=False)
+
+        called = []
+        world.receiveFor(thing['id'], called.append)
+
+        world.emit('foo', thing['id'])
+        self.assertEqual(called, [], "Should not receive because it was "
+                         "disabled on creation.")
+
 
 
 

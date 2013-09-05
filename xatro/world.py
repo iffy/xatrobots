@@ -39,9 +39,13 @@ class World(object):
         self._on_change = defaultdict(lambda: [])
 
 
-    def create(self, kind):
+    def create(self, kind, receive_emissions=True):
         """
         Create an object of the given kind.
+
+        @param receive_emissions: If C{True} then emissions from this object
+            will be received by this object.  If C{False} then emissions from
+            this object will not be received by this object.
         """
         obj_id = str(uuid4())
         obj = {
@@ -49,8 +53,11 @@ class World(object):
             'kind': kind,
         }
         self.objects[obj_id] = obj
-        self.emit(Created(obj_id))
-        self.emit(AttrSet(obj_id, 'kind', kind))
+        if receive_emissions:
+            # should receive own emissions
+            self.subscribeTo(obj_id, self.receiverFor(obj_id))
+        self.emit(Created(obj_id), obj_id)
+        self.emit(AttrSet(obj_id, 'kind', kind), obj_id)
         return obj
 
 

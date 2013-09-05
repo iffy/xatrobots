@@ -55,6 +55,58 @@ class MoveTest(TestCase):
                          "Thing should receive thing events")
 
 
+    def test_execute_inRoom(self):
+        """
+        If an object is already located in another container, then moving it
+        should:
+            - Unsubscribe from the location's events
+            - Unsubscribe the location from the thing's events
+            - Cause C{contents} to be updated.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')['id']
+        room1 = world.create('room1')['id']
+        room2 = world.create('room2')['id']
+
+        move1 = Move(thing, room1)
+        move1.execute(world)
+
+        move2 = Move(thing, room2)
+        move2.execute(world)
+
+        room1_called = []
+        world.receiveFor(room1, room1_called.append)
+
+        room2_called = []
+        world.receiveFor(room2, room2_called.append)
+
+        thing_called = []
+        world.receiveFor(thing, thing_called.append)
+
+        # emit from room1
+        world.emit('foo', room1)
+        self.assertEqual(thing_called, [], "Thing should detach from previous "
+                         "room events")
+        room1_called.pop()
+
+        # emit from thing
+        world.emit('bar', thing)
+        self.assertEqual(thing_called, ['bar'], "Thing should see own events")
+        self.assertEqual(room1_called, [], "Room1 should detach from thing"
+                         " events")
+
+        # room1 contents
+        room1_obj = world.get(room1)
+        self.assertEqual(room1_obj['contents'], [], "Should remove from "
+                         "contents of room1")
+
+        location = world.get(thing)['location']
+        self.assertEqual(location, room2, "Should update the "
+                         "location of the thing.  This is mostly to confirm "
+                         "that the default moving behavior tested in the other "
+                         "test happened.")
+
+
 
 
 

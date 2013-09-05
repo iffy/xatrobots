@@ -13,15 +13,21 @@ class Move(object):
         thing = self.thing
         dst = self.dst
 
+        thing_obj = world.get(thing)
+        old_location_id = thing_obj.get('location')
+        if old_location_id:
+            # remove from previous location
+            world.removeItem(old_location_id, 'contents', thing)
+            world.unsubscribeFrom(old_location_id, world.receiverFor(thing))
+            world.unsubscribeFrom(thing, world.receiverFor(old_location_id))
+
         # tell them about each other
         world.setAttr(thing, 'location', dst)
         world.addItem(dst, 'contents', thing)
 
         # subscribe to the appropriate events
-        world.subscribeTo(dst, world.receiverFor(dst))
         world.subscribeTo(dst, world.receiverFor(thing))
         world.subscribeTo(thing, world.receiverFor(dst))
-        world.subscribeTo(thing, world.receiverFor(thing))
 
 
 
