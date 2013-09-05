@@ -43,6 +43,7 @@ class State(object):
 
 
     def eventReceived(self, event):
+        print event
         try:
             return self.mapper.call(event.__class__, event)
         except KeyError:
