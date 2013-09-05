@@ -3,7 +3,7 @@ from twisted.trial.unittest import TestCase
 from mock import MagicMock
 
 from xatro.world import World
-from xatro.action import Move, Charge
+from xatro.action import Move, Charge, ShareEnergy
 
 
 
@@ -155,8 +155,50 @@ class ChargeTest(TestCase):
 
     def test_charge(self):
         """
-        Charging should add energy to the thing's energy_pool.
+        Charging should add energy to the thing's energy pool and to the
+        thing's created energy pool.
         """
+        world = World(MagicMock())
+
+        thing = world.create('thing')
+
+        charge = Charge(thing['id'])
+        charge.execute(world)
+
+        self.assertEqual(len(thing['energy']), 1)
+        self.assertEqual(thing['created_energy'], 1, "Should keep track "
+                         "of the energy it created")
+
+        e = world.get(thing['energy'][0])
+        self.assertEqual(e['kind'], 'energy')
+        self.assertEqual(e['creator'], thing['id'])
+
+
+
+class ShareEnergyTest(TestCase):
+
+
+    def test_share(self):
+        """
+        You can share energy with another thing.
+        """
+        world = World(MagicMock())
+
+        thing1 = world.create('thing')
+        thing2 = world.create('thing')
+
+        Charge(thing1['id']).execute(world)
+        
+        ShareEnergy(thing1['id'], thing2['id'], 1).execute(world)
+
+        self.assertEqual(len(thing1['energy']), 0, "Should remove the energy"
+                         " from the giver")
+        self.assertEqual(len(thing2['energy']), 1, "Should add energy to "
+                         "the receiver")
+
+
+
+
 
 
 
