@@ -5,8 +5,22 @@ import traceback
 from uuid import uuid4
 
 from collections import defaultdict
+from functools import wraps
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
+
+
+def memoize(f):
+    # XXX make this faster if it's too slow.
+    data = {}
+    @wraps(f)
+    def deco(*args, **kwargs):
+        key = (args, tuple(kwargs.items()))
+        if key in data:
+            return data[key]
+        data[key] = f(*args, **kwargs)
+        return data[key]
+    return deco
 
 
 
@@ -116,7 +130,7 @@ class World(object):
                             func, object_id, event))
                     log.msg(traceback.format_exc())
 
-
+    @memoize
     def emitterFor(self, object_id):
         """
         Get a function that will take a single argument and emit events for
@@ -149,6 +163,7 @@ class World(object):
             func(event)
 
 
+    @memoize
     def receiverFor(self, object_id):
         """
         Get a function that will take a single argument and call

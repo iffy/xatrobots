@@ -231,6 +231,15 @@ class WorldTest(TestCase):
         ev2.assert_called_once_with('foo')
 
 
+    def test_emitterFor_same(self):
+        """
+        You should get the same function each time you ask for an emitter for
+        the same object.
+        """
+        world = World(MagicMock())
+        self.assertEqual(world.emitterFor('foo'), world.emitterFor('foo'))
+
+
     def test_subscribeTo(self):
         """
         You can subscribe to the events that are emitted by a particular object.
@@ -289,6 +298,15 @@ class WorldTest(TestCase):
         receiver = world.receiverFor(obj['id'])
         receiver('hey')
         self.assertEqual(called, ['hey'])
+
+
+    def test_receiverFor_same(self):
+        """
+        You should get the same function each time you ask for a receiver for
+        the same object.
+        """
+        world = World(MagicMock())
+        self.assertEqual(world.receiverFor('foo'), world.receiverFor('foo'))
     
 
 
