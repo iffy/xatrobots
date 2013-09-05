@@ -6,6 +6,7 @@ from mock import MagicMock
 from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy
+from xatro.event import Destroyed
 
 
 
@@ -204,6 +205,28 @@ class ChargeTest(TestCase):
                          "the energy list of the user")
         self.assertEqual(thing['created_energy'], 0, "Should decrement "
                          "the created_energy attribute")
+
+
+    def test_creator_dead(self):
+        """
+        When the creator of energy is dead, the energy is also dead.
+
+        XXX I'm not sure if this belongs in the game engine or not.  Seems like
+        a rule that could be changed.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+
+        Charge(thing['id']).execute(world)
+
+        energy = thing['energy'][0]
+        d = world.onEvent(energy, Destroyed(energy))
+
+        # to die means to move to None
+        Move(thing['id'], None).execute(world)
+
+        self.assertEqual(d.called, True, "Energy should be destroyed because "
+                         "the creator of the energy died.")
 
 
 

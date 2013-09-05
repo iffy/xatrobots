@@ -64,7 +64,7 @@ def _receiveEnergy(world, obj_id, energy_id):
     # wait for it to be destroyed
     d = world.onEvent(energy_id, Destroyed(energy_id))
     d.addCallback(_rmFromEnergyPool, world, obj_id)
-    world.setAttr(energy_id, 'onDestroy', d)
+    world.setAttr(energy_id, '_onDestroy', d)
 
 
 def _rmFromEnergyPool(ev, world, obj_id):
@@ -108,6 +108,11 @@ class Charge(object):
         d = world.onEvent(e['id'], Destroyed(e['id']))
         d.addCallback(self._decCreatedEnergy, world, thing_id)
 
+        # destroy the energy when the creator is destroyed
+        # XXX this might be ripped out of here and put in the game engine
+        d = world.onBecome(thing_id, 'location', None)
+        d.addCallback(lambda x:world.destroy(e['id']))
+
 
     def _decCreatedEnergy(self, ev, world, thing_id):
         """
@@ -150,7 +155,7 @@ class ShareEnergy(object):
             # remove from giver (and unsubscribe from energy destruction)
             world.removeItem(giver_id, 'energy', e)
             e_obj = world.get(e)
-            e_obj['onDestroy'].cancel()
+            e_obj['_onDestroy'].cancel()
 
             # add to receiver (and subscribe to energy destruction)
             _receiveEnergy(world, receiver_id, e)
