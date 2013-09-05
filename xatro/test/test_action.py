@@ -5,9 +5,10 @@ from mock import MagicMock
 
 from xatro.interface import IAction
 from xatro.world import World
-from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
+from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
+from xatro.action import Repair
 from xatro.event import Destroyed
-from xatro.error import NotEnoughEnergy
+from xatro.error import NotEnoughEnergy, Invulnerable
 
 
 
@@ -329,6 +330,97 @@ class ConsumeEnergyTest(TestCase):
 
         self.assertIn(energies[0], world.objects, "Should not have consumed "
                       "the energy")
+
+
+
+class ShootTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, Shoot('foo', 'bar', 3))
+
+
+    def test_emitters(self):
+        self.assertEqual(Shoot('foo', 'bar', 3).emitters(), ['foo', 'bar'])
+
+
+    def test_execute(self):
+        """
+        Shooting something should reduce its hitpoints by the given amount.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+        target = world.create('foo')
+
+        world.setAttr(target['id'], 'hp', 30)
+        Shoot(thing['id'], target['id'], 10).execute(world)
+
+        self.assertEqual(target['hp'], 20, "Should reduce the hitpoints")
+
+
+    def test_stayAbove0(self):
+        """
+        You can't damage something below 0 by shooting.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+        target = world.create('foo')
+
+        world.setAttr(target['id'], 'hp', 30)
+        Shoot(thing['id'], target['id'], 500).execute(world)
+
+        self.assertEqual(target['hp'], 0, "Should reduce the hitpoints to 0")
+
+
+    def test_invulnerable(self):
+        """
+        You can't shoot something that is invulnerable.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+        target = world.create('foo')
+
+        self.assertRaises(Invulnerable,
+                          Shoot(thing['id'], target['id'], 500).execute, world)
+
+
+
+class RepairTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, Repair('foo', 'bar', 3))
+
+
+    def test_emitters(self):
+        self.assertEqual(Repair('foo', 'bar', '3').emitters(), ['foo', 'bar'])
+
+
+    def test_execute(self):
+        """
+        Repairing something should increas the number of hitpoints on that
+        thing.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+        target = world.create('foo')
+
+        world.setAttr(target['id'], 'hp', 30)
+        Repair(thing['id'], target['id'], 10).execute(world)
+
+        self.assertEqual(target['hp'], 40, "Should increase the hitpoints")
+
+
+    def test_invulnerable(self):
+        """
+        You can't repair something that is invulnerable.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+        target = world.create('foo')
+
+        self.assertRaises(Invulnerable,
+                          Repair(thing['id'], target['id'], 500).execute, world)
 
 
 

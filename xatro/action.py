@@ -3,7 +3,7 @@ from zope.interface import implements
 from xatro.interface import IAction
 
 from xatro.event import Destroyed
-from xatro.error import NotEnoughEnergy
+from xatro.error import NotEnoughEnergy, Invulnerable
 
 
 
@@ -193,9 +193,68 @@ class ConsumeEnergy(object):
             world.destroy(e)
 
 
-# ChargeBattery()
-# ShareEnergy(who, amount)
-# _ConsumeEnergy(amount)
+
+class Shoot(object):
+    """
+    Shoot something.
+    """
+
+    implements(IAction)
+
+    def __init__(self, shooter, target, damage):
+        self.shooter = shooter
+        self.target = target
+        self.damage = damage
+
+
+    def emitters(self):
+        return [self.shooter, self.target]
+
+
+    def execute(self, world):
+        """
+        @raise Invulnerable: If the target can't be shot.
+        """
+        target = world.get(self.target)
+        
+        if 'hp' not in target:
+            raise Invulnerable(self.target)
+
+        new_hp = max(target['hp'] - self.damage, 0)
+        world.setAttr(target['id'], 'hp', new_hp)
+
+
+
+class Repair(object):
+    """
+    Repair something
+    """
+
+    implements(IAction)
+
+    def __init__(self, repairman, target, amount):
+        self.repairman = repairman
+        self.target = target
+        self.amount = amount
+
+
+    def emitters(self):
+        return [self.repairman, self.target]
+
+
+    def execute(self, world):
+        """
+        @raise Invulnerable: If the target can't be repaired.
+        """
+        target = world.get(self.target)
+        
+        if 'hp' not in target:
+            raise Invulnerable(self.target)
+
+        new_hp = target['hp'] + self.amount
+        world.setAttr(target['id'], 'hp', new_hp)
+
+
 
 # MakeTool(ore, kind_of_tool)
 # Shoot(what, energy)
