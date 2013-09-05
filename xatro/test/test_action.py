@@ -158,6 +158,16 @@ class MoveTest(TestCase):
         self.assertEqual(location, None, "Should update the location")
 
 
+    def test_invalidLocation(self):
+        """
+        It is an error to move to a non-entity.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')['id']
+
+        self.assertRaises(NotAllowed, Move(thing, 4).execute, world)
+
+
 
 class ChargeTest(TestCase):
 

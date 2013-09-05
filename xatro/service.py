@@ -36,7 +36,11 @@ def makeService(options):
     f = BotFactory(world, {
         'move': action.Move,
         'charge': action.Charge,
+        'consume': action.ConsumeEnergy,
         'share': action.ShareEnergy,
+        'look': action.Look,
+        'shoot': action.Shoot,
+        'repair': action.Repair,
     })
     endpoint = endpoints.serverFromString(reactor, options['line-proto-endpoint'])
     server_service = internet.StreamServerEndpointService(endpoint, f)

@@ -85,7 +85,16 @@ class BotLineProtocol(LineOnlyReceiver):
         parts = line.split(' ')
         cmd_name = parts[0]
         cmd_cls = self.avatar.availableCommands()[cmd_name.lower()]
-        self.avatar.execute(cmd_cls, *parts[1:])
+
+        # turn things that look like numbers into integers... yeah, this is 
+        # also fragile
+        def maybeInt(x):
+            try:
+                return int(x)
+            except:
+                return x
+        args = map(maybeInt, parts[1:])
+        self.avatar.execute(cmd_cls, *args)
 
 
 
@@ -105,6 +114,7 @@ class BotFactory(protocol.Factory):
     def buildProtocol(self, addr):
         avatar = Avatar(self.world, self.commands)
         game_piece = self.world.create('bot')['id']
+        self.world.setAttr(game_piece, 'hp', 100)
         avatar.setGamePiece(game_piece)
 
         proto = self.protocol(avatar)

@@ -1,10 +1,8 @@
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
+from xatro.action import Shoot, Repair, Look
 from xatro.router import Router
-
-
-
 
 
 
@@ -74,6 +72,22 @@ class ToStringTransformer(object):
     @router.handle(ConsumeEnergy)
     def ConsumeEnergy(self, action):
         return '%s consumed %d energy' % (action.thing, action.amount)
+
+
+    @router.handle(Shoot)
+    def Shoot(self, action):
+        return '%s shot %s for %d' % (action.shooter, action.target,
+                                      action.damage)
+
+    @router.handle(Repair)
+    def Repair(self, action):
+        return '%s repaired %s by %d' % (action.repairman, action.target,
+                                         action.amount)
+
+    @router.handle(Look)
+    def Look(self, action):
+        return '%s looked around' % (action.thing,)
+
 
 
 

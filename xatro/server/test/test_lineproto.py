@@ -179,7 +179,7 @@ class BotLineProtocolTest(TestCase):
         proto.makeConnection(StringTransport())
 
         proto.lineReceived('move east-23 twice 3')
-        avatar.execute.assert_called_once_with(Move, 'east-23', 'twice', '3')
+        avatar.execute.assert_called_once_with(Move, 'east-23', 'twice', 3)
 
 
 
