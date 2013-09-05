@@ -109,13 +109,6 @@ class Charge(object):
         d.addCallback(self._decCreatedEnergy, world, thing_id)
 
 
-    def _rmFromEnergy(self, ev, world, thing_id):
-        """
-        Remove energy from a thing's list of energy.
-        """
-        
-
-
     def _decCreatedEnergy(self, ev, world, thing_id):
         """
         Decrement the created_energy amount of a thing.
@@ -160,17 +153,8 @@ class ShareEnergy(object):
             e_obj['onDestroy'].cancel()
 
             # add to receiver (and subscribe to energy destruction)
-            world.addItem(receiver_id, 'energy', e)
-            d = world.onEvent(e, Destroyed(e))
-            d.addCallback(self._rmFromEnergy, world, receiver_id)
-            world.setAttr(e, 'onDestroy', d)
+            _receiveEnergy(world, receiver_id, e)
 
-
-    def _rmFromEnergy(self, ev, world, thing_id):
-        """
-        Remove energy from a thing's list of energy.
-        """
-        world.removeItem(thing_id, 'energy', ev.id)
 
 
 # ChargeBattery()
