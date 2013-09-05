@@ -3,7 +3,7 @@ from zope.interface import implements
 from xatro.interface import IAction
 
 from xatro.event import Destroyed
-from xatro.error import NotEnoughEnergy, Invulnerable
+from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
 
 
@@ -31,6 +31,10 @@ class Move(object):
     def execute(self, world):
         thing = self.thing
         dst = self.dst
+
+        if dst is not None:
+            if dst not in world.objects:
+                raise NotAllowed(dst)
 
         thing_obj = world.get(thing)
         old_location_id = thing_obj.get('location')
@@ -134,7 +138,7 @@ class Charge(object):
         d = world.onEvent(e['id'], Destroyed(e['id']))
         d.addCallback(self._decCreatedEnergy, world, thing_id)
 
-        # destroy the energy when the creator is destroyed
+        # destroy the energy when the creator is dead
         # XXX this might be ripped out of here and put in the game engine
         d = world.onBecome(thing_id, 'location', None)
         d.addCallback(lambda x:world.destroy(e['id']))
@@ -242,7 +246,7 @@ class Shoot(object):
         """
         target = world.get(self.target)
         
-        if 'hp' not in target:
+        if target.get('hp') is None:
             raise Invulnerable(self.target)
 
         new_hp = max(target['hp'] - self.damage, 0)
@@ -273,7 +277,7 @@ class Repair(object):
         """
         target = world.get(self.target)
         
-        if 'hp' not in target:
+        if target.get('hp') is None:
             raise Invulnerable(self.target)
 
         new_hp = target['hp'] + self.amount
@@ -281,25 +285,50 @@ class Repair(object):
 
 
 
-# MakeTool(ore, kind_of_tool)
-# OpenPortal(code)
-# UsePortal(code)
-# Look(eyes)
-# Status(thing)
-
-# AddLock(portal)
-# BreakLock(portal)
-
-
-
 class MakeTool(object):
 
+    implements(IAction)
 
-    def __init__(self, bot, ore, tool):
-        self.bot = bot
+
+    def __init__(self, thing, ore, tool):
+        self.thing = thing
         self.ore = ore
         self.tool = tool
 
 
+    def emitters(self):
+        return [self.thing, self.ore]
+
+
     def execute(self, world):
-        pass
+        ore = world.get(self.ore)
+        if ore['kind'] != 'ore':
+            raise NotAllowed('%s is not ore' % (self.ore,))
+
+        world.setAttr(self.ore, 'kind', 'lifesource')
+        world.setAttr(self.thing, 'tool', self.tool)
+
+        # destroy the tool when the creator is dead
+        d = world.onBecome(self.thing, 'location', None)
+        d.addCallback(self._revert, world, self.thing, self.ore)
+
+        # destroy when lifesource is dead
+        d = world.onBecome(self.ore, 'hp', 0)
+        d.addCallback(self._revert, world, self.thing, self.ore)
+
+
+    def _revert(self, ev, world, thing_id, ore_id):
+        world.setAttr(thing_id, 'tool', None)
+        world.setAttr(ore_id, 'kind', 'ore')
+        world.setAttr(ore_id, 'hp', None)
+
+
+
+
+# MakeTool(ore, kind_of_tool)
+# OpenPortal(code)
+# UsePortal(code)
+# Status(thing)
+
+# AddLock(portal)
+# BreakLock(portal)

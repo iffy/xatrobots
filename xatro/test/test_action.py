@@ -6,9 +6,9 @@ from mock import MagicMock
 from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
-from xatro.action import Repair, Look
+from xatro.action import Repair, Look, MakeTool
 from xatro.event import Destroyed
-from xatro.error import NotEnoughEnergy, Invulnerable
+from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
 
 
@@ -392,6 +392,9 @@ class ShootTest(TestCase):
 
         self.assertRaises(Invulnerable,
                           Shoot(thing['id'], target['id'], 500).execute, world)
+        world.setAttr(target['id'], 'hp', None)
+        self.assertRaises(Invulnerable,
+                          Shoot(thing['id'], target['id'], 500).execute, world)
 
 
 
@@ -429,6 +432,9 @@ class RepairTest(TestCase):
         thing = world.create('foo')
         target = world.create('foo')
 
+        self.assertRaises(Invulnerable,
+                          Repair(thing['id'], target['id'], 500).execute, world)
+        world.setAttr(target['id'], 'hp', None)
         self.assertRaises(Invulnerable,
                           Repair(thing['id'], target['id'], 500).execute, world)
 
@@ -469,6 +475,84 @@ class LookTest(TestCase):
         thing = world.create('thing')
 
         self.assertEqual(Look(thing['id']).execute(world), [])
+
+
+
+class MakeToolTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, MakeTool('me', 'ore', 'tool'))
+
+
+    def test_emitters(self):
+        self.assertEqual(MakeTool('me', 'ore', 'tool').emitters(),
+                         ['me', 'ore'])
+
+
+    def test_makeTool(self):
+        """
+        Making a tool will destroy the ore, make a lifesource in its place,
+        and equip the maker with the tool.
+        """
+        world = World(MagicMock())
+        ore = world.create('ore')
+        bot = world.create('bot')
+        MakeTool(bot['id'], ore['id'], 'knife').execute(world)
+
+        self.assertEqual(ore['kind'], 'lifesource', "Should have converted "
+                         "the ore into a lifesource")
+        self.assertEqual(bot['tool'], 'knife', "Should have given the bot "
+                         "the tool")
+
+
+    def test_onlyOre(self):
+        """
+        Only ore can be turned into tools.
+        """
+        world = World(MagicMock())
+        ore = world.create('flower')
+        bot = world.create('bot')
+
+        self.assertRaises(NotAllowed,
+            MakeTool(bot['id'], ore['id'], 'knife').execute, world)
+
+
+    def test_revertToOreWhenBotDies(self):
+        """
+        If the thing dies that made the tool, revert to ore and set the tool
+        to None
+        """
+        world = World(MagicMock())
+        ore = world.create('ore')
+        bot = world.create('bot')
+        MakeTool(bot['id'], ore['id'], 'knife').execute(world)
+
+        # moving to None is death
+        Move(bot['id'], None).execute(world)
+
+        self.assertEqual(bot['tool'], None, "Should unequip the tool")
+        self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
+        self.assertEqual(ore['hp'], None, "Should set hp to None")
+
+
+    def test_revertWhenKilled(self):
+        """
+        If the lifesource is shot to death, then revert to ore and unequip.
+        """
+        world = World(MagicMock())
+        ore = world.create('ore')
+        bot = world.create('bot')
+        MakeTool(bot['id'], ore['id'], 'knife').execute(world)
+
+        world.setAttr(ore['id'], 'hp', 0)
+
+        self.assertEqual(bot['tool'], None, "Should unequip the tool")
+        self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
+        self.assertEqual(ore['hp'], None, "Should set hp to None")
+
+
+
 
 
 
