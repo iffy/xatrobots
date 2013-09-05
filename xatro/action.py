@@ -3,6 +3,7 @@ from zope.interface import implements
 from xatro.interface import IAction
 
 from xatro.event import Destroyed
+from xatro.error import NotEnoughEnergy
 
 
 
@@ -160,6 +161,36 @@ class ShareEnergy(object):
             # add to receiver (and subscribe to energy destruction)
             _receiveEnergy(world, receiver_id, e)
 
+
+
+class ConsumeEnergy(object):
+    """
+    Consume some energy.
+    """
+
+    implements(IAction)
+
+    def __init__(self, thing, amount):
+        self.thing = thing
+        self.amount = amount
+
+
+    def emitters(self):
+        return [self.thing]
+
+
+    def execute(self, world):
+        """
+        Consume energy.
+
+        @raise NotEnoughEnergy: If there's not enough energy.
+        """
+        thing = world.get(self.thing)
+        if len(thing['energy']) < self.amount:
+            raise NotEnoughEnergy(self.amount)
+
+        for e in thing['energy'][:self.amount]:
+            world.destroy(e)
 
 
 # ChargeBattery()

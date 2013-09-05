@@ -5,8 +5,9 @@ from mock import MagicMock
 
 from xatro.interface import IAction
 from xatro.world import World
-from xatro.action import Move, Charge, ShareEnergy
+from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
 from xatro.event import Destroyed
+from xatro.error import NotEnoughEnergy
 
 
 
@@ -280,6 +281,55 @@ class ShareEnergyTest(TestCase):
                          "Should decrement creator's created count")
         self.assertEqual(len(receiver['energy']), 0,
                          "Should deplete receiver's energy")
+
+
+
+class ConsumeEnergyTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, ConsumeEnergy('foo', 2))
+
+
+    def test_emitters(self):
+        self.assertEqual(ConsumeEnergy('foo', 2).emitters(), ['foo'])
+
+
+    def test_execute(self):
+        """
+        Consuming energy should simply destroy the energy.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+
+        Charge(thing['id']).execute(world)
+        Charge(thing['id']).execute(world)
+
+        energies = list(thing['energy'])
+
+        ConsumeEnergy(thing['id'], 2).execute(world)
+
+        self.assertNotIn(energies[0], world.objects)
+        self.assertNotIn(energies[1], world.objects)
+
+
+    def test_notEnough(self):
+        """
+        It is an error to consume more energy than you have.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+
+        Charge(thing['id']).execute(world)
+
+        energies = list(thing['energy'])
+
+        self.assertRaises(NotEnoughEnergy,
+                          ConsumeEnergy(thing['id'], 2).execute, world)
+
+        self.assertIn(energies[0], world.objects, "Should not have consumed "
+                      "the energy")
+
 
 
 

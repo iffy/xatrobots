@@ -2,7 +2,7 @@ from twisted.trial.unittest import TestCase
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed
-from xatro.action import Move, Charge, ShareEnergy
+from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
 from xatro.transformer import ToStringTransformer
 
 
@@ -64,3 +64,8 @@ class ToStringTransformerTest(TestCase):
     def test_ShareEnergy(self):
         self.assertSimple(ShareEnergy('foo', 'bar', 10),
                           'foo gave bar 10 energy')
+
+
+    def test_ConsumeEnergy(self):
+        self.assertSimple(ConsumeEnergy('foo', 10),
+                          'foo consumed 10 energy')

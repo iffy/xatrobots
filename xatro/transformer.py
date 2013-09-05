@@ -1,6 +1,6 @@
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed
-from xatro.action import Move, Charge, ShareEnergy
+from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
 from xatro.router import Router
 
 
@@ -69,6 +69,11 @@ class ToStringTransformer(object):
     @router.handle(ShareEnergy)
     def ShareEnergy(self, action):
         return '%s gave %s %d energy' % (action.giver, action.receiver, action.amount)
+
+
+    @router.handle(ConsumeEnergy)
+    def ConsumeEnergy(self, action):
+        return '%s consumed %d energy' % (action.thing, action.amount)
 
 
 
