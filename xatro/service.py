@@ -4,6 +4,7 @@ from twisted.python import usage
 
 
 from xatro.world import World
+from xatro import action
 from xatro.server.lineproto import BotFactory
 
 
@@ -24,7 +25,9 @@ def makeService(options):
 
     world = World(lambda x:None)
     
-    f = BotFactory(world)
+    f = BotFactory(world, {
+        'move': action.Move,
+    })
     endpoint = endpoints.serverFromString(reactor, options['line-proto-endpoint'])
     server_service = internet.StreamServerEndpointService(endpoint, f)
     server_service.setName('Line-protocol Bot Service')

@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from collections import defaultdict
 from functools import wraps
+from weakref import WeakKeyDictionary
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed
@@ -39,6 +40,7 @@ class World(object):
         """
         self.engine = engine
         self._state = State()
+        self._envelopes = WeakKeyDictionary()
         self.objects = self._state.state
         self.event_receiver = event_receiver
         self._subscribers = defaultdict(lambda: [])
@@ -270,6 +272,20 @@ class World(object):
         d = defer.Deferred(_cancel)
         self._on_event[key].append(d)
         return d
+
+
+    # envelopes
+
+
+    def envelope(self, obj):
+        """
+        Get the envelope associated with an object (or create one).  This is a
+        way of associating attributes with an object without setting the
+        attributes on the object itself.  This may be a really bad idea :)
+        """
+        if obj not in self._envelopes:
+            self._envelopes[obj] = {}
+        return self._envelopes[obj]
 
 
 

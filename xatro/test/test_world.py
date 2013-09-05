@@ -431,3 +431,16 @@ class WorldTest(TestCase):
         self.assertEqual(emitted, [])
 
 
+    def test_envelope(self):
+        """
+        You can read/write on the envelope of objects.
+        """
+        world = World(MagicMock())
+        obj = MagicMock()
+        env = world.envelope(obj)
+        self.assertTrue(isinstance(env, dict))
+        env['foo'] = 'bar'
+
+
+
+
