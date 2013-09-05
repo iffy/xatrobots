@@ -184,14 +184,14 @@ class WorldTest(TestCase):
         self.assertFailure(d, defer.CancelledError)
 
 
-    def test_onChange(self):
+    def test_onNextChange(self):
         """
         You can get a Deferred which will fire when an attribute changes
         """
         world = World(MagicMock())
 
         obj = world.create('foo')
-        d = world.onChange(obj['id'], 'hey')
+        d = world.onNextChange(obj['id'], 'hey')
         self.assertFalse(d.called)
 
         world.setAttr(obj['id'], 'ho', 8)
@@ -204,14 +204,14 @@ class WorldTest(TestCase):
         world.setAttr(obj['id'], 'hey', 2)
 
 
-    def test_onChange_cancel(self):
+    def test_onNextChange_cancel(self):
         """
-        You can cancel the deferred returned by onChange
+        You can cancel the deferred returned by onNextChange
         """
         world = World(MagicMock())
 
         obj = world.create('foo')
-        d = world.onChange(obj['id'], 'hey')
+        d = world.onNextChange(obj['id'], 'hey')
         d.cancel()
 
         world.setAttr(obj['id'], 'hey', 3)

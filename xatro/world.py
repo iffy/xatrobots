@@ -243,7 +243,7 @@ class World(object):
         return d
 
 
-    def onChange(self, object_id, attr_name):
+    def onNextChange(self, object_id, attr_name):
         """
         Return a Deferred which will fire when the given attribute next changes.
         """
