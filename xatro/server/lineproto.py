@@ -3,7 +3,7 @@ from twisted.protocols.basic import LineOnlyReceiver
 
 import json
 
-
+from xatro.transformer import ToStringTransformer
 from xatro.avatar import Avatar
 
 
@@ -65,6 +65,7 @@ class BotLineProtocol(LineOnlyReceiver):
 
     def __init__(self, avatar):
         self.avatar = avatar
+        self.event_transformer = ToStringTransformer()
 
 
     def connectionMade(self):
@@ -72,7 +73,7 @@ class BotLineProtocol(LineOnlyReceiver):
 
 
     def eventReceived(self, event):
-        self.sendLine(' '.join(map(str, event)))
+        self.sendLine(self.event_transformer.transform(event))
 
 
     def connectionLost(self, reason):
@@ -109,3 +110,6 @@ class BotFactory(protocol.Factory):
         proto = self.protocol(avatar)
         proto.factory = self
         return proto
+
+
+

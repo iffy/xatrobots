@@ -11,6 +11,7 @@ from xatro.world import World
 from xatro.avatar import Avatar
 from xatro.event import AttrSet
 from xatro.action import Move
+from xatro.transformer import ToStringTransformer
 
 
 
@@ -116,6 +117,9 @@ class BotFactoryTest(TestCase):
         obj = world.get(proto.avatar._game_piece)
         self.assertEqual(obj['kind'], 'bot', "Should make a bot in the world")
 
+        self.assertTrue(isinstance(proto.event_transformer,
+                        ToStringTransformer))
+
 
 
 class BotLineProtocolTest(TestCase):
@@ -136,15 +140,20 @@ class BotLineProtocolTest(TestCase):
 
     def test_eventReceived(self):
         """
-        Events should be spit out as space-seperated strings on a single line.
+        Events should be spit out a transformed string on a single line.
         """
         avatar = Avatar()
 
         proto = BotLineProtocol(avatar)
+        proto.event_transformer = MagicMock()
+        proto.event_transformer.transform.return_value = 'transformed'
+
         proto.makeConnection(StringTransport())
         proto.eventReceived(AttrSet('hey', 'ho', 3))
 
-        self.assertEqual(proto.transport.value(), 'hey ho 3\r\n')
+        proto.event_transformer.transform.assert_called_once_with(
+            AttrSet('hey', 'ho', 3))
+        self.assertEqual(proto.transport.value(), 'transformed\r\n')
 
 
     def test_connectionLost(self):

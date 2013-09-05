@@ -6,6 +6,7 @@ from twisted.python import usage
 from xatro.world import World
 from xatro import action
 from xatro.server.lineproto import BotFactory
+from xatro.engine import XatroEngine
 
 
 class Options(usage.Options):
@@ -23,10 +24,19 @@ class Options(usage.Options):
 def makeService(options):
     from twisted.internet import reactor
 
-    world = World(lambda x:None)
+    from mock import MagicMock
+    rules = MagicMock()
+    rules.workRequirement.return_value = None
+    rules.energyRequirement.return_value = 0
+    rules.isAllowed.return_value = None
+
+    engine = XatroEngine(rules)
+    world = World(lambda x:None, engine)
     
     f = BotFactory(world, {
         'move': action.Move,
+        'charge': action.Charge,
+        'share': action.ShareEnergy,
     })
     endpoint = endpoints.serverFromString(reactor, options['line-proto-endpoint'])
     server_service = internet.StreamServerEndpointService(endpoint, f)
