@@ -6,7 +6,7 @@ from mock import MagicMock
 from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
-from xatro.action import Repair
+from xatro.action import Repair, Look
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable
 
@@ -424,8 +424,41 @@ class RepairTest(TestCase):
 
 
 
+class LookTest(TestCase):
 
 
+    def test_IAction(self):
+        verifyObject(IAction, Look('foo'))
+
+
+    def test_emitters(self):
+        self.assertEqual(Look('foo').emitters(), ['foo'])
+
+
+    def test_inLocation(self):
+        """
+        Should list the things in my location
+        """
+        world = World(MagicMock())
+        room = world.create('foo')
+        thing = world.create('thing')
+        other = world.create('thing')
+
+        Move(thing['id'], room['id']).execute(world)
+        Move(other['id'], room['id']).execute(world)
+
+        r = Look(thing['id']).execute(world)
+        self.assertEqual(set(r), set([thing['id'], other['id']]))
+
+
+    def test_nowhere(self):
+        """
+        If you are nowhere, return an empty list.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+
+        self.assertEqual(Look(thing['id']).execute(world), [])
 
 
 

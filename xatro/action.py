@@ -55,6 +55,31 @@ class Move(object):
 
 
 
+class Look(object):
+    """
+    Look at the surroundings.
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, thing):
+        self.thing = thing
+
+
+    def emitters(self):
+        return [self.thing]
+
+
+    def execute(self, world):
+        """
+        """
+        location = world.get(self.thing).get('location')
+        if location:
+            return world.get(location)['contents']
+        return []
+
+
 def _receiveEnergy(world, obj_id, energy_id):
     """
     Receive energy, and appropriately watch for the energy's destruction.
@@ -257,8 +282,6 @@ class Repair(object):
 
 
 # MakeTool(ore, kind_of_tool)
-# Shoot(what, energy)
-# Repair(what, energy)
 # OpenPortal(code)
 # UsePortal(code)
 # Look(eyes)
