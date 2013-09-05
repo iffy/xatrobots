@@ -2,6 +2,8 @@
 from zope.interface import implements
 from xatro.interface import IAction
 
+from xatro.event import Destroyed
+
 
 
 class Move(object):
@@ -72,17 +74,88 @@ class Charge(object):
         thing_id = self.thing
 
         e = world.create('energy')
-        world.setAttr(e['id'], 'creator', thing_id)
 
         thing = world.get(thing_id)
 
         # give this thing some energy
         world.addItem(thing_id, 'energy', e['id'])
 
+        # wait for it to be destroyed
+        d = world.onEvent(e['id'], Destroyed(e['id']))
+        d.addCallback(self._rmFromEnergy, world, thing_id)
+        world.setAttr(e['id'], 'onDestroy', d)
+
         # record that this thing created energy
         world.setAttr(thing_id, 'created_energy',
                       thing.get('created_energy', 0) + 1)
 
+        # wait for it to be destroyed
+        d = world.onEvent(e['id'], Destroyed(e['id']))
+        d.addCallback(self._decCreatedEnergy, world, thing_id)
+
+
+    def _rmFromEnergy(self, ev, world, thing_id):
+        """
+        Remove energy from a thing's list of energy.
+        """
+        world.removeItem(thing_id, 'energy', ev.id)
+
+
+    def _decCreatedEnergy(self, ev, world, thing_id):
+        """
+        Decrement the created_energy amount of a thing.
+        """
+        world.setAttr(thing_id, 'created_energy',
+                      world.get(thing_id)['created_energy'] - 1)
+
+
+
+class ShareEnergy(object):
+    """
+    Share some energy.
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, giver, receiver, amount):
+        self.giver = giver
+        self.receiver = receiver
+        self.amount = amount
+
+
+    def emitters(self):
+        return [self.giver, self.receiver]
+
+
+    def execute(self, world):
+        """
+        """
+        giver_id = self.giver
+        receiver_id = self.receiver
+        amount = self.amount
+
+        # get some energy
+        giver = world.get(giver_id)
+
+        for e in giver['energy'][:amount]:
+            # remove from giver (and unsubscribe from energy destruction)
+            world.removeItem(giver_id, 'energy', e)
+            e_obj = world.get(e)
+            e_obj['onDestroy'].cancel()
+
+            # add to receiver (and subscribe to energy destruction)
+            world.addItem(receiver_id, 'energy', e)
+            d = world.onEvent(e, Destroyed(e))
+            d.addCallback(self._rmFromEnergy, world, receiver_id)
+            world.setAttr(e, 'onDestroy', d)
+
+
+    def _rmFromEnergy(self, ev, world, thing_id):
+        """
+        Remove energy from a thing's list of energy.
+        """
+        world.removeItem(thing_id, 'energy', ev.id)
 
 
 # ChargeBattery()

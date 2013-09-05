@@ -33,6 +33,7 @@ class XatroEngine(object):
             if solution is None or not self.work_maker.isResult(work, solution):
                 # verify that the work is good
                 raise InvalidSolution(work)
+        
         self.engine.energyRequirement(world, action)
 
         return action.execute(world)

@@ -5,7 +5,7 @@ from mock import MagicMock
 
 from xatro.interface import IAction
 from xatro.world import World
-from xatro.action import Move, Charge
+from xatro.action import Move, Charge, ShareEnergy
 
 
 
@@ -185,7 +185,80 @@ class ChargeTest(TestCase):
 
         e = world.get(thing['energy'][0])
         self.assertEqual(e['kind'], 'energy')
-        self.assertEqual(e['creator'], thing['id'])
+
+
+    def test_energyDestroyed(self):
+        """
+        When energy is destroyed, it should decrement the creator's
+        created_energy amount.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+
+        Charge(thing['id']).execute(world)
+
+        energy = thing['energy'][0]
+        world.destroy(energy)
+
+        self.assertEqual(thing['energy'], [], "Should remove the energy from "
+                         "the energy list of the user")
+        self.assertEqual(thing['created_energy'], 0, "Should decrement "
+                         "the created_energy attribute")
+
+
+
+class ShareEnergyTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, ShareEnergy('foo', 'bar', 2))
+
+
+    def test_emitters(self):
+        self.assertEqual(ShareEnergy('foo', 'bar', 2).emitters(),
+                         ['foo', 'bar'])
+
+
+    def test_share(self):
+        """
+        Sharing energy should result in the energy being removed from the
+        giver's energy pool and added to the receiver's energy pool.
+        """
+        world = World(MagicMock())
+        giver = world.create('thing')
+        receiver = world.create('thing')
+
+        Charge(giver['id']).execute(world)
+        ShareEnergy(giver['id'], receiver['id'], 1).execute(world)
+
+        self.assertEqual(len(giver['energy']), 0,
+                         "Should deplete giver's energy")
+        self.assertEqual(len(receiver['energy']), 1,
+                         "Should increase receiver's energy")
+
+
+    def test_sharedEnergy_destroyed(self):
+        """
+        When shared energy is destroyed, it should be removed from the
+        energy pool of whoever has it and still decrement the creator's
+        created_energy amount.
+        """
+        world = World(MagicMock())
+        giver = world.create('thing')
+        receiver = world.create('thing')
+
+        Charge(giver['id']).execute(world)
+        ShareEnergy(giver['id'], receiver['id'], 1).execute(world)
+
+        e = receiver['energy'][0]
+        world.destroy(e)
+
+        self.assertEqual(giver['created_energy'], 0,
+                         "Should decrement creator's created count")
+        self.assertEqual(len(receiver['energy']), 0,
+                         "Should deplete receiver's energy")
+
+
 
 
 
