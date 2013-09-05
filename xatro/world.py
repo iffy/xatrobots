@@ -63,6 +63,14 @@ class World(object):
         """
         """
         self.emit(Destroyed(object_id), object_id)
+        
+        # remove all functions receiving emissions from this object.
+        if object_id in self._subscribers:
+            self._subscribers.pop(object_id)
+
+        # remove all functions handling events received by this object.
+        if object_id in self._receivers:
+            self._receivers.pop(object_id)
 
 
     def get(self, object_id):
@@ -104,13 +112,14 @@ class World(object):
 
     # events
 
-    def emit(self, event, object_id=None):
+    def emit(self, event, object_id):
         """
-        Emit an event to the world.  Optionally, identify the event as coming
-        from a particular object by specifying C{object_id}.  Functions
-        previously supplied to L{subscribeTo} will receive notifications about
-        events particular to objects.  All events will be called on my
-        C{event_receiver}.
+        Emit an event to the world from an object.
+
+        Functions previously supplied to L{subscribeTo} will receive
+        notifications about events particular to objects.
+
+        All events will be sent to my C{event_receiver}.
         """
         # update state
         self._state.eventReceived(event)
@@ -122,18 +131,17 @@ class World(object):
                     self.event_receiver, event))
             log.msg(traceback.format_exc())
 
-        if object_id:
-            for func in self._subscribers[object_id]:
-                try:
-                    func(event)
-                except:
-                    log.msg('Error in subscriber %r for %r for event %r' % (
-                            func, object_id, event))
-                    log.msg(traceback.format_exc())
-            # notify Deferreds waiting for this particular event
-            events = self._on_event[(object_id, event)]
-            while events:
-                events.pop(0).callback(event)
+        for func in self._subscribers[object_id]:
+            try:
+                func(event)
+            except:
+                log.msg('Error in subscriber %r for %r for event %r' % (
+                        func, object_id, event))
+                log.msg(traceback.format_exc())
+        # notify Deferreds waiting for this particular event
+        events = self._on_event[(object_id, event)]
+        while events:
+            events.pop(0).callback(event)
 
     @memoize
     def emitterFor(self, object_id):

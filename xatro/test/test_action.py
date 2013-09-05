@@ -3,7 +3,7 @@ from twisted.trial.unittest import TestCase
 from mock import MagicMock
 
 from xatro.world import World
-from xatro.action import Move, Charge, ShareEnergy
+from xatro.action import Move, Charge
 
 
 
@@ -34,10 +34,6 @@ class MoveTest(TestCase):
 
         thing_called = []
         world.receiveFor(thing['id'], thing_called.append)
-
-        world.emit('foo')
-        self.assertEqual(room_called, [])
-        self.assertEqual(thing_called, [])
 
         world.emit('foo', room['id'])
         self.assertEqual(room_called, ['foo'],
@@ -173,28 +169,6 @@ class ChargeTest(TestCase):
         self.assertEqual(e['kind'], 'energy')
         self.assertEqual(e['creator'], thing['id'])
 
-
-
-class ShareEnergyTest(TestCase):
-
-
-    def test_share(self):
-        """
-        You can share energy with another thing.
-        """
-        world = World(MagicMock())
-
-        thing1 = world.create('thing')
-        thing2 = world.create('thing')
-
-        Charge(thing1['id']).execute(world)
-        
-        ShareEnergy(thing1['id'], thing2['id'], 1).execute(world)
-
-        self.assertEqual(len(thing1['energy']), 0, "Should remove the energy"
-                         " from the giver")
-        self.assertEqual(len(thing2['energy']), 1, "Should add energy to "
-                         "the receiver")
 
 
 

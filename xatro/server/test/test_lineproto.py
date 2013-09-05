@@ -5,6 +5,7 @@ from mock import MagicMock
 import json
 
 from xatro.server.lineproto import EventFeedLineFactory, EventFeedLineProtocol
+from xatro.server.lineproto import EventFeedLineFactory, EventFeedLineProtocol
 
 
 class EventFeedLineFactoryTest(TestCase):

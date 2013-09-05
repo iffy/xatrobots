@@ -69,27 +69,6 @@ class Charge(object):
 
 
 
-class ShareEnergy(object):
-    """
-    Share energy with someone else.
-    """
-
-    def __init__(self, giver, receiver, amount):
-        self.giver = giver
-        self.receiver = receiver
-        self.amount = amount
-
-
-    def execute(self, world):
-        """
-        """
-        giver_id = self.giver
-        giver = world.get(giver_id)
-
-        e = giver['energy'].pop(0)
-
-
-
 # ChargeBattery()
 # ShareEnergy(who, amount)
 # _ConsumeEnergy(amount)

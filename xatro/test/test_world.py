@@ -10,15 +10,14 @@ from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 class WorldTest(TestCase):
 
 
-    def test_init(self):
+    def test_emit(self):
         """
-        A world has an event receiver that will be supplied with all the
-        events.
+        All emissions are sent to my event_receiver
         """
-        called = []
-        world = World(called.append)
-        world.emit('foo')
-        self.assertEqual(called, ['foo'], "Should receive the event")
+        ev = MagicMock()
+        world = World(ev)
+        world.emit('something', 'foo')
+        ev.assert_called_once_with('something')
 
 
     def test_create(self):
@@ -378,12 +377,33 @@ class WorldTest(TestCase):
                          "disabled on creation.")
 
 
+    def test_destroy_disableSubscribers(self):
+        """
+        When an object is destroyed, things subscribed to its events will
+        no longer receive events.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
 
+        received = []
+        world.receiveFor(thing['id'], received.append)
 
+        emitted = []
+        world.subscribeTo(thing['id'], emitted.append)
 
+        receiver = world.receiverFor(thing['id'])
+        emitter = world.emitterFor(thing['id'])
 
+        world.destroy(thing['id'])
+        received.pop()
+        emitted.pop()
 
+        receiver('foo')
+        self.assertEqual(received, [])
+        self.assertEqual(emitted, [])
 
-
+        emitter('foo')
+        self.assertEqual(received, [])
+        self.assertEqual(emitted, [])
 
 
