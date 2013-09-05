@@ -43,7 +43,10 @@ class State(object):
 
 
     def eventReceived(self, event):
-        return self.mapper.call(event.__class__, event)
+        try:
+            return self.mapper.call(event.__class__, event)
+        except KeyError:
+            pass
 
 
     @mapper.handle(Created)

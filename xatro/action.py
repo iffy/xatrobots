@@ -42,6 +42,7 @@ class Move(object):
             world.subscribeTo(thing, world.receiverFor(dst))
 
 
+
 class Charge(object):
     """
     Create some energy.

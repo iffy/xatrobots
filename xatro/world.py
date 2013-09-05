@@ -8,6 +8,7 @@ from collections import defaultdict
 from functools import wraps
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
+from xatro.state import State
 
 
 def memoize(f):
@@ -31,8 +32,9 @@ class World(object):
 
 
     def __init__(self, event_receiver):
+        self._state = State()
+        self.objects = self._state.state
         self.event_receiver = event_receiver
-        self.objects = {}
         self._subscribers = defaultdict(lambda: [])
         self._receivers = defaultdict(lambda: [])
         self._on_become = defaultdict(lambda: [])
@@ -49,23 +51,17 @@ class World(object):
             this object will not be received by this object.
         """
         obj_id = str(uuid4())
-        obj = {
-            'id': obj_id,
-            'kind': kind,
-        }
-        self.objects[obj_id] = obj
+        self.emit(Created(obj_id), obj_id)
         if receive_emissions:
             # should receive own emissions
             self.subscribeTo(obj_id, self.receiverFor(obj_id))
-        self.emit(Created(obj_id), obj_id)
         self.emit(AttrSet(obj_id, 'kind', kind), obj_id)
-        return obj
+        return self.get(obj_id)
 
 
     def destroy(self, object_id):
         """
         """
-        self.objects.pop(object_id)
         self.emit(Destroyed(object_id), object_id)
 
 
@@ -80,7 +76,6 @@ class World(object):
         """
         Set the value of an object's attribute.
         """
-        self.objects[object_id][attr_name] = value
         self.emit(AttrSet(object_id, attr_name, value), object_id)
         
         on_become = self._on_become[(object_id, attr_name, value)]
@@ -96,10 +91,6 @@ class World(object):
         """
         Add an item to a list.
         """
-        obj = self.objects[object_id]
-        if attr_name not in obj:
-            obj[attr_name] = []
-        obj[attr_name].append(value)
         self.emit(ItemAdded(object_id, attr_name, value), object_id)
 
 
@@ -107,7 +98,6 @@ class World(object):
         """
         Remove an item from a list.
         """
-        self.objects[object_id][attr_name].remove(value)
         self.emit(ItemRemoved(object_id, attr_name, value), object_id)
 
 
@@ -122,6 +112,9 @@ class World(object):
         events particular to objects.  All events will be called on my
         C{event_receiver}.
         """
+        # update state
+        self._state.eventReceived(event)
+
         try:
             self.event_receiver(event)
         except:

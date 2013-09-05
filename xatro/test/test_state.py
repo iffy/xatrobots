@@ -62,3 +62,13 @@ class StateTest(TestCase):
         state.eventReceived(ItemAdded('foo', 'thelist', 10))
         state.eventReceived(ItemRemoved('foo', 'thelist', 10))
         self.assertEqual(state.state['foo']['thelist'], [])
+
+
+    def test_unknownEvents(self):
+        """
+        Unknown events should fail silently
+        """
+        state = State()
+        state.eventReceived('foo')
+        class Foo(object): pass
+        state.eventReceived(Foo())
