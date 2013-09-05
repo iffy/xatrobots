@@ -76,16 +76,21 @@ class WorldTest(TestCase):
 
     def test_destroy(self):
         """
-        You can destroy an object
+        You can destroy an object, and be notified about it.
         """
         ev = MagicMock()
         world = World(ev)
         obj = world.create('foo')
 
         ev.reset_mock()
+        called = []
+        world.receiveFor(obj['id'], called.append)
+
         world.destroy(obj['id'])
 
         ev.assert_any_call(Destroyed(obj['id']))
+        self.assertEqual(called, [Destroyed(obj['id'])], "Should notify things"
+                         " receiving events for the object")
         self.assertNotIn(obj['id'], world.objects)
 
 
@@ -187,6 +192,40 @@ class WorldTest(TestCase):
         d.cancel()
 
         world.setAttr(obj['id'], 'hey', 3)
+
+        self.assertFailure(d, defer.CancelledError)
+
+
+    def test_onEvent(self):
+        """
+        You can be notified when a certain event happens.
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')['id']
+
+        d = world.onEvent(obj, 'event')
+        self.assertEqual(d.called, False)
+
+        world.emit('event', obj)
+        self.assertEqual(self.successResultOf(d), 'event')
+
+        # shouldn't die calling again
+        world.emit('event', obj)
+
+
+    def test_onEvent_cancel(self):
+        """
+        You can cancel the deferred returned by onEvent
+        """
+        world = World(MagicMock())
+
+        obj = world.create('foo')
+
+        d = world.onEvent(obj['id'], 'hey')
+        d.cancel()
+
+        world.emit('hey', obj['id'])
 
         self.assertFailure(d, defer.CancelledError)
 

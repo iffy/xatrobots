@@ -3,7 +3,7 @@ from twisted.trial.unittest import TestCase
 from mock import MagicMock
 
 from xatro.world import World
-from xatro.action import Move
+from xatro.action import Move, Charge
 
 
 
@@ -107,6 +107,56 @@ class MoveTest(TestCase):
                          "test happened.")
 
 
+    def test_moveToNone(self):
+        """
+        Moving something to nowhere should result in the location being
+        None.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')['id']
+        room1 = world.create('room1')['id']
+
+        move1 = Move(thing, room1)
+        move1.execute(world)
+
+        move2 = Move(thing, None)
+        move2.execute(world)
+
+        room1_called = []
+        world.receiveFor(room1, room1_called.append)
+
+        thing_called = []
+        world.receiveFor(thing, thing_called.append)
+
+        # emit from room1
+        world.emit('foo', room1)
+        self.assertEqual(thing_called, [], "Thing should detach from previous "
+                         "room events")
+        room1_called.pop()
+
+        # emit from thing
+        world.emit('bar', thing)
+        self.assertEqual(thing_called, ['bar'], "Thing should see own events")
+        self.assertEqual(room1_called, [], "Room1 should detach from thing"
+                         " events")
+
+        # room1 contents
+        room1_obj = world.get(room1)
+        self.assertEqual(room1_obj['contents'], [], "Should remove from "
+                         "contents of room1")
+
+        location = world.get(thing)['location']
+        self.assertEqual(location, None, "Should update the location")
+
+
+
+class ChargeTest(TestCase):
+
+
+    def test_charge(self):
+        """
+        Charging should add energy to the thing's energy_pool.
+        """
 
 
 

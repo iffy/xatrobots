@@ -37,6 +37,7 @@ class World(object):
         self._receivers = defaultdict(lambda: [])
         self._on_become = defaultdict(lambda: [])
         self._on_change = defaultdict(lambda: [])
+        self._on_event = defaultdict(lambda: [])
 
 
     def create(self, kind, receive_emissions=True):
@@ -65,7 +66,7 @@ class World(object):
         """
         """
         self.objects.pop(object_id)
-        self.emit(Destroyed(object_id))
+        self.emit(Destroyed(object_id), object_id)
 
 
     def get(self, object_id):
@@ -80,7 +81,7 @@ class World(object):
         Set the value of an object's attribute.
         """
         self.objects[object_id][attr_name] = value
-        self.emit(AttrSet(object_id, attr_name, value))
+        self.emit(AttrSet(object_id, attr_name, value), object_id)
         
         on_become = self._on_become[(object_id, attr_name, value)]
         while on_become:
@@ -99,7 +100,7 @@ class World(object):
         if attr_name not in obj:
             obj[attr_name] = []
         obj[attr_name].append(value)
-        self.emit(ItemAdded(object_id, attr_name, value))
+        self.emit(ItemAdded(object_id, attr_name, value), object_id)
 
 
     def removeItem(self, object_id, attr_name, value):
@@ -107,7 +108,7 @@ class World(object):
         Remove an item from a list.
         """
         self.objects[object_id][attr_name].remove(value)
-        self.emit(ItemRemoved(object_id, attr_name, value))
+        self.emit(ItemRemoved(object_id, attr_name, value), object_id)
 
 
 
@@ -136,6 +137,10 @@ class World(object):
                     log.msg('Error in subscriber %r for %r for event %r' % (
                             func, object_id, event))
                     log.msg(traceback.format_exc())
+            # notify Deferreds waiting for this particular event
+            events = self._on_event[(object_id, event)]
+            while events:
+                events.pop(0).callback(event)
 
     @memoize
     def emitterFor(self, object_id):
@@ -204,11 +209,14 @@ class World(object):
         Return a Deferred which will fire when the given attribute becomes
         the given value.
         """
+        key = (object_id, attr_name, target)
         def _cancel(d):
-            self._on_become[(object_id, attr_name, target)].remove(d)
+            self._on_become[key].remove(d)
+            if not self._on_become[key]:
+                del self._on_become[key]
 
         d = defer.Deferred(_cancel)
-        self._on_become[(object_id, attr_name, target)].append(d)
+        self._on_become[key].append(d)
         return d
 
 
@@ -216,11 +224,30 @@ class World(object):
         """
         Return a Deferred which will fire when the given attribute next changes.
         """
+        key = (object_id, attr_name)
         def _cancel(d):
-            self._on_change[(object_id, attr_name)].remove(d)
+            self._on_change[key].remove(d)
+            if not self._on_change[key]:
+                del self._on_change[key]
 
         d = defer.Deferred(_cancel)
-        self._on_change[(object_id, attr_name)].append(d)
+        self._on_change[key].append(d)
+        return d
+
+
+    def onEvent(self, object_id, event):
+        """
+        Return a Deferred which will fire when the given object emits the given
+        event.
+        """
+        key = (object_id, event)
+        def _cancel(d):
+            self._on_event[key].remove(d)
+            if not self._on_event[key]:
+                del self._on_event[key]
+
+        d = defer.Deferred(_cancel)
+        self._on_event[key].append(d)
         return d
 
 
