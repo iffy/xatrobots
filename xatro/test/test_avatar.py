@@ -40,7 +40,7 @@ class AvatarTest(TestCase):
         a = Avatar(world)
         a.eventReceived = MagicMock()
 
-        piece = world.create('foo', receive_emissions=False)
+        piece = world.create('foo')
         a.setGamePiece(piece['id'])
         self.assertEqual(a._game_piece, piece['id'])
 

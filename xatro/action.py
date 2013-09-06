@@ -1,6 +1,8 @@
 from twisted.internet import defer
 from zope.interface import implements
 
+from collections import defaultdict
+
 from xatro.interface import IAction
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
@@ -43,8 +45,8 @@ class Move(object):
             world.removeItem(old_location_id, 'contents', thing)
 
             # unsubscribe previous location events
-            world.unsubscribeFrom(old_location_id, world.receiverFor(thing))
-            world.unsubscribeFrom(thing, world.receiverFor(old_location_id))
+            #world.unsubscribeFrom(old_location_id, world.receiverFor(thing))
+            #world.unsubscribeFrom(thing, world.receiverFor(old_location_id))
 
         # tell the thing where it is
         world.setAttr(thing, 'location', dst)
@@ -54,8 +56,11 @@ class Move(object):
             world.addItem(dst, 'contents', thing)
 
             # subscribe location and thing to each other's events
-            world.subscribeTo(dst, world.receiverFor(thing))
-            world.subscribeTo(thing, world.receiverFor(dst))
+            #world.subscribeTo(dst, world.receiverFor(thing))
+            #world.subscribeTo(thing, world.receiverFor(dst))
+
+            # events the dst receives should be emitted
+            world.receiveFor(dst, world.emitterFor(dst))
 
 
 
@@ -412,8 +417,44 @@ class UsePortal(object):
 
 
 
-# OpenPortal(code)
-# UsePortal(code)
+class ListSquares(object):
+    """
+    List the squares in the world.
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, eyes):
+        self.eyes = eyes
+
+
+    def emitters(self):
+        return []
+
+
+    def execute(self, world):
+        """
+        List the squares in the world.
+        """
+        # XXX optimize this if it's too slow.  It's very possible that it's
+        # too slow.
+        ret = []
+        squares = (x for x in world.objects.values() if x['kind'] == 'square')
+        for square in squares:
+            contents = defaultdict(lambda: 0)
+            for thing_id in square.get('contents', []):
+                thing = world.get(thing_id)
+                contents[thing['kind']] += 1
+            ret.append({
+                'id': square['id'],
+                'kind': square['kind'],
+                'coordinates': square.get('coordinates'),
+                'contents': contents,
+            })
+        return ret
+
+
 # Status(thing)
 
 # AddLock(portal)

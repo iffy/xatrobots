@@ -41,6 +41,10 @@ def makeService(options):
         'look': action.Look,
         'shoot': action.Shoot,
         'repair': action.Repair,
+        'tool': action.MakeTool,
+        'openportal': action.OpenPortal,
+        'useportal': action.UsePortal,
+        'squares': action.ListSquares,
     })
     endpoint = endpoints.serverFromString(reactor, options['line-proto-endpoint'])
     server_service = internet.StreamServerEndpointService(endpoint, f)

@@ -40,6 +40,8 @@ class World(object):
         """
         self.engine = engine
         self._state = State()
+        self._event_queue = []
+        self._event_queue_running = False
         self._envelopes = WeakKeyDictionary()
         self._world_envelopes = {}
         self.objects = self._state.state
@@ -64,19 +66,12 @@ class World(object):
         return ret
 
 
-    def create(self, kind, receive_emissions=True):
+    def create(self, kind):
         """
         Create an object of the given kind.
-
-        @param receive_emissions: If C{True} then emissions from this object
-            will be received by this object.  If C{False} then emissions from
-            this object will not be received by this object.
         """
         obj_id = str(uuid4())
         self.emit(Created(obj_id), obj_id)
-        if receive_emissions:
-            # should receive own emissions
-            self.subscribeTo(obj_id, self.receiverFor(obj_id))
         self.emit(AttrSet(obj_id, 'kind', kind), obj_id)
         return self.get(obj_id)
 
@@ -150,28 +145,54 @@ class World(object):
 
         All events will be sent to my C{event_receiver}.
         """
-        # update state
-        self._state.eventReceived(event)
+        self._event_queue.append((event, object_id))
 
-        try:
-            self.event_receiver(event)
-        except:
-            log.msg('Error in event receiver %r for event %r' % (
-                    self.event_receiver, event))
-            log.msg(traceback.format_exc())
+        if self._event_queue_running:
+            # we'll get to it when the current event is done being processed.
+            return
 
-        for func in self._subscribers[object_id]:
+        self._event_queue_running = True
+        called_list = []
+        while self._event_queue:
+            event, object_id = self._event_queue.pop(0)
+            
+            # update state
+            self._state.eventReceived(event)
+
             try:
-                func(event)
+                self._callOnce(called_list, self.event_receiver, event)
             except:
-                log.msg('Error in subscriber %r for %r for event %r' % (
-                        func, object_id, event))
+                log.msg('Error in event receiver %r for event %r' % (
+                        self.event_receiver, event))
                 log.msg(traceback.format_exc())
-        
-        # notify Deferreds waiting for this particular event
-        events = self._on_event[(object_id, event)]
-        while events:
-            events.pop(0).callback(event)
+
+            for func in self._subscribers[object_id]:
+                try:
+                    self._callOnce(called_list, func, event)
+                except:
+                    log.msg('Error in subscriber %r for %r for event %r' % (
+                            func, object_id, event))
+                    log.msg(traceback.format_exc())
+            
+            # notify Deferreds waiting for this particular event
+            events = self._on_event[(object_id, event)]
+            while events:
+                events.pop(0).callback(event)
+        self._event_queue_running = False
+
+
+    def _callOnce(self, called_list, func, *args, **kwargs):
+        """
+        Call the given function with the given arguments only once,
+        using C{called_list} as the memory for which functions have been
+        called.
+        """
+        key = (func, args, kwargs)
+        if key in called_list:
+            return
+        called_list.append(key)
+        func(*args, **kwargs)
+
 
     @memoize
     def emitterFor(self, object_id):

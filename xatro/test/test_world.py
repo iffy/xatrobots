@@ -1,5 +1,5 @@
 from twisted.trial.unittest import TestCase
-from twisted.internet import defer
+from twisted.internet import defer, threads
 
 from mock import MagicMock
 
@@ -11,6 +11,7 @@ from xatro.event import ActionPerformed, AttrDel
 
 class WorldTest(TestCase):
 
+    timeout = 1
 
     def test_emit(self):
         """
@@ -41,7 +42,6 @@ class WorldTest(TestCase):
         engine.execute.assert_called_once_with(world, action)
         self.assertEqual(r, 'response', "Should return the result of execution")
         world.emit.assert_called_once_with(ActionPerformed(action), 'I did it')
-
 
 
     def test_create(self):
@@ -127,8 +127,6 @@ class WorldTest(TestCase):
         world.destroy(obj['id'])
 
         ev.assert_any_call(Destroyed(obj['id']))
-        self.assertEqual(called, [Destroyed(obj['id'])], "Should notify things"
-                         " receiving events for the object")
         self.assertNotIn(obj['id'], world.objects)
 
 
@@ -386,36 +384,6 @@ class WorldTest(TestCase):
         self.assertEqual(world.receiverFor('foo'), world.receiverFor('foo'))
 
 
-    def test_selfReceiving(self):
-        """
-        All things should receive their own events by default.
-        """
-        world = World(MagicMock())
-        thing = world.create('foo')
-
-        called = []
-        world.receiveFor(thing['id'], called.append)
-
-        world.emit('foo', thing['id'])
-        self.assertEqual(called, ['foo'], "Things should receive their own "
-                         "emissions")
-
-
-    def test_disable_selfReceiving(self):
-        """
-        You can disable self-receipt by creating things with a special arg.
-        """
-        world = World(MagicMock())
-        thing = world.create('foo', receive_emissions=False)
-
-        called = []
-        world.receiveFor(thing['id'], called.append)
-
-        world.emit('foo', thing['id'])
-        self.assertEqual(called, [], "Should not receive because it was "
-                         "disabled on creation.")
-
-
     def test_destroy_disableSubscribers(self):
         """
         When an object is destroyed, things subscribed to its events will
@@ -434,7 +402,6 @@ class WorldTest(TestCase):
         emitter = world.emitterFor(thing['id'])
 
         world.destroy(thing['id'])
-        received.pop()
         emitted.pop()
 
         receiver('foo')
@@ -471,6 +438,92 @@ class WorldTest(TestCase):
         # destruction should destroy the envelope too
         world.destroy(obj_id)
         self.assertRaises(KeyError, world.envelope, obj_id)
+
+
+    def test_emit_oneEventAtATime(self):
+        """
+        Only one event should be emitted at a time.  If an event emission
+        causes another event to be emitted, it should be appended to a queue
+        and be emitted after the current event is finished.
+        """
+        world = World(MagicMock())
+        obj1 = world.create('foo')['id']
+        obj2 = world.create('foo')['id']
+        obj3 = world.create('foo')['id']
+
+        obj1_received = []
+        world.receiveFor(obj1, obj1_received.append)
+        
+        obj2_received = []
+        world.receiveFor(obj2, obj2_received.append)
+
+        obj3_received = []
+        world.receiveFor(obj3, obj3_received.append)
+
+        # obj1 will emit to
+        #   obj2 and obj3
+        world.subscribeTo(obj1, world.receiverFor(obj2))
+        world.subscribeTo(obj1, world.receiverFor(obj3))
+
+        # obj2 will emit to
+        #   obj1 and obj3
+        world.subscribeTo(obj2, world.receiverFor(obj1))
+        world.subscribeTo(obj2, world.receiverFor(obj3))
+
+
+        #       1_
+        #      /|\
+        #     /   \
+        #   |/_   _\|
+        #   3 <---- 2
+
+        # obj2 will emit "obj2" every time he receives an event
+        def noisy(_):
+            world.emit('obj2', obj2)
+        world.receiveFor(obj2, noisy)
+
+        # If things are working properly, then obj3 will receive
+        # the 'obj2' emissions AFTER it receives the event from obj1
+        world.emit('obj1', obj1)
+        self.assertEqual(obj1_received, ['obj2'], "obj1 should receive obj2")
+        self.assertEqual(obj2_received, ['obj1'], "obj2 should receive obj1")
+        self.assertEqual(obj3_received, ['obj1', 'obj2'],
+                         "obj3 should receiver obj1 first, then obj2")
+
+
+    def test_emit_receiveOnce(self):
+        """
+        Events should only be received by each object once.
+        """
+        world = World(MagicMock())
+        obj1 = world.create('foo')['id']
+        obj2 = world.create('foo')['id']
+
+        obj1_received = []
+        world.receiveFor(obj1, obj1_received.append)
+
+        obj2_received = []
+        world.receiveFor(obj2, obj2_received.append)
+
+        # obj1 emits everything it receives
+        world.receiveFor(obj1, world.emitterFor(obj1))
+        
+        # obj2 emits everything it receives
+        world.receiveFor(obj2, world.emitterFor(obj2))
+        
+        # obj2 receives emissions from obj1
+        world.subscribeTo(obj1, world.receiverFor(obj2))
+
+        # obj1 receives emissions from obj2
+        world.subscribeTo(obj2, world.receiverFor(obj1))
+
+        # we have a nice loop set up.  When this test fails, it is likely to
+        # continue spinning forever.
+        world.emit('echo', obj1)
+        self.assertEqual(obj1_received, ['echo'], "Should have received the "
+                         "message once")
+        self.assertEqual(obj2_received, ['echo'], "Should have received the "
+                         "message once")
 
 
 

@@ -1,7 +1,7 @@
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed, AttrDel
-from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
-from xatro.action import Shoot, Repair, Look, MakeTool, OpenPortal, UsePortal
+from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
+from xatro.action import Repair, MakeTool, OpenPortal, UsePortal, ListSquares
 from xatro.router import Router
 
 
@@ -108,6 +108,11 @@ class ToStringTransformer(object):
     @router.handle(UsePortal)
     def UsePortal(self, action):
         return '%s used portal %s' % (action.thing, action.portal)
+
+
+    @router.handle(ListSquares)
+    def ListSquares(self, action):
+        return '%s listed squares' % (action.eyes,)
 
 
 

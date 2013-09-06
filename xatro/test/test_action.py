@@ -7,6 +7,7 @@ from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
 from xatro.action import Repair, Look, MakeTool, OpenPortal, UsePortal
+from xatro.action import ListSquares
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
@@ -166,6 +167,28 @@ class MoveTest(TestCase):
         thing = world.create('thing')['id']
 
         self.assertRaises(NotAllowed, Move(thing, 4).execute, world)
+
+
+    def test_thingsInTheSameRoom(self):
+        """
+        Things in the same location should see events emitted by each other.
+        """
+        world = World(MagicMock())
+        room = world.create('a')['id']
+        thing1 = world.create('thing')['id']
+        thing2 = world.create('thing')['id']
+
+        Move(thing1, room).execute(world)
+        Move(thing2, room).execute(world)
+
+        c1 = []
+        world.receiveFor(thing1, c1.append)
+        c2 = []
+        world.receiveFor(thing2, c2.append)
+
+        world.emit('foo', thing1)
+        self.assertEqual(c1, ['foo'])
+        self.assertEqual(c2, ['foo'])
 
 
 
@@ -698,6 +721,51 @@ class UsePortalTest(TestCase):
         self.assertEqual(self.ore['kind'], 'portal', "Should still be a portal")
         self.assertEqual(self.ore['portal_user'], self.lander['id'],
                          "Should still be tied to the lander")
+
+
+
+class ListSquaresTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, ListSquares('me'))
+
+
+    def test_emitters(self):
+        self.assertEqual(ListSquares('me').emitters(), [])
+
+
+    def test_execute(self):
+        """
+        Listing squares should return a list of all the things in the world
+        which are squares.  It should include their coordinates and number of
+        each kind of thing inside them.
+        """
+        world = World(MagicMock())
+        s1 = world.create('square')['id']
+        s2 = world.create('square')['id']
+        world.setAttr(s2, 'coordinates', (0, 1))
+        
+        thing1 = world.create('thing')['id']
+        Move(thing1, s2).execute(world)
+
+        output = ListSquares(thing1).execute(world)
+        self.assertIn({
+            'id': s1,
+            'kind': 'square',
+            'coordinates': None,
+            'contents': {},
+        }, output)
+        self.assertIn({
+            'id': s2,
+            'kind': 'square',
+            'coordinates': (0, 1),
+            'contents': {
+                'thing': 1,
+            }
+        }, output)
+        self.assertEqual(len(output), 2)
+
 
 
 

@@ -3,7 +3,7 @@ from twisted.trial.unittest import TestCase
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed, AttrDel
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
-from xatro.action import Repair, MakeTool, OpenPortal, UsePortal
+from xatro.action import Repair, MakeTool, OpenPortal, UsePortal, ListSquares
 from xatro.transformer import ToStringTransformer
 
 
@@ -99,3 +99,7 @@ class ToStringTransformerTest(TestCase):
 
     def test_UsePortal(self):
         self.assertSimple(UsePortal('foo', '1234'), 'foo used portal 1234')
+
+
+    def test_ListSquares(self):
+        self.assertSimple(ListSquares('foo'), 'foo listed squares')
