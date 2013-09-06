@@ -41,6 +41,7 @@ class World(object):
         self.engine = engine
         self._state = State()
         self._envelopes = WeakKeyDictionary()
+        self._world_envelopes = {}
         self.objects = self._state.state
         self.event_receiver = event_receiver
         self._subscribers = defaultdict(lambda: [])
@@ -289,10 +290,38 @@ class World(object):
         Get the envelope associated with an object (or create one).  This is a
         way of associating attributes with an object without setting the
         attributes on the object itself.  This may be a really bad idea :)
+
+        If C{obj} is the id of an object in the world (made with L{create})
+        then the envelope will only exist as long as the object exists and can
+        only be created if the object has been created.
         """
-        if obj not in self._envelopes:
-            self._envelopes[obj] = {}
-        return self._envelopes[obj]
+        if type(obj) == str:
+            # world object, not a python object
+            return self._worldEnvelope(obj)
+
+        # object envelopes
+        envelopes = self._envelopes
+        if obj not in envelopes:
+            envelopes[obj] = {}
+        return envelopes[obj]
+
+
+    def _worldEnvelope(self, key):
+        if key not in self._world_envelopes:
+            # only ids for objects in the world are allowed
+            if key not in self.objects:
+                raise KeyError(key)
+
+            self._world_envelopes[key] = {}
+            
+            # watch for destruction
+            d = self.onEvent(key, Destroyed(key))
+            d.addCallback(lambda _,key: self._destroyWorldEnvelope(key), key)
+        return self._world_envelopes[key]
+
+
+    def _destroyWorldEnvelope(self, key):
+        self._world_envelopes.pop(key)
 
 
 

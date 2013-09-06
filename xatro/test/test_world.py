@@ -457,5 +457,21 @@ class WorldTest(TestCase):
         env['foo'] = 'bar'
 
 
+    def test_envelope_ids(self):
+        """
+        You can read/write on the envelope of things in the world (using their
+        id).
+        """
+        world = World(MagicMock())
+        obj_id = world.create('foo')['id']
+        env = world.envelope(obj_id)
+        self.assertTrue(isinstance(env, dict))
+        env['foo'] = 'bar'
+
+        # destruction should destroy the envelope too
+        world.destroy(obj_id)
+        self.assertRaises(KeyError, world.envelope, obj_id)
+
+
 
 
