@@ -1,5 +1,6 @@
 from twisted.trial.unittest import TestCase
 from twisted.test.proto_helpers import StringTransport
+from twisted.internet import defer
 
 from mock import MagicMock, create_autospec
 import json
@@ -202,6 +203,24 @@ class BotLineProtocolTest(TestCase):
         proto.lineReceived('move east-23 twice 3')
 
         self.assertEqual(proto.transport.value(), '')
+
+
+    def test_commandResultDeferredSuccess(self):
+        """
+        If the result of a command is Deferred, wait for it to succeed.
+        """
+        avatar = MagicMock()
+        avatar.availableCommands = lambda: {'move': Move}
+        avatar.execute.return_value = defer.succeed('foo')
+        
+        proto = BotLineProtocol(avatar)
+        proto.makeConnection(StringTransport())
+
+        proto.lineReceived('move east-23 twice 3')
+
+        self.assertEqual(proto.transport.value(), 'foo\r\n')
+
+
 
 
 

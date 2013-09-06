@@ -1,4 +1,4 @@
-from twisted.internet import protocol
+from twisted.internet import protocol, defer
 from twisted.protocols.basic import LineOnlyReceiver
 
 import json
@@ -94,7 +94,11 @@ class BotLineProtocol(LineOnlyReceiver):
             except:
                 return x
         args = map(maybeInt, parts[1:])
-        result = self.avatar.execute(cmd_cls, *args)
+        d = defer.maybeDeferred(self.avatar.execute, cmd_cls, *args)
+        d.addCallback(self._handleCommandResult)
+
+
+    def _handleCommandResult(self, result):
         if result:
             self.sendLine(self.event_transformer.transform(result))
 

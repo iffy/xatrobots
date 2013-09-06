@@ -7,6 +7,7 @@ from twisted.web.server import Site
 
 from xatro.world import World
 from xatro import action
+from xatro.auth import FileStoredPasswords
 from xatro.server.lineproto import BotFactory
 from xatro.engine import XatroEngine
 from xatro.web.observatory import GameObserver
@@ -23,7 +24,10 @@ class Options(usage.Options):
         ("web-endpoint", "w", "tcp:7600",
          "string endpoint web interface will listen on"),
         ("web-static-path", None, "static",
-         "Path where static resources reside.")
+         "Path where static resources reside."),
+
+        ('password-file', 'p', '.xatro.passwords',
+         "File to store team passwords in"),
     ]
 
 
@@ -47,8 +51,11 @@ def makeService(options):
     web_service = internet.StreamServerEndpointService(endpoint, site)
     web_service.setName('Web Observer Service')
 
+    # passwords
+    auth = FileStoredPasswords(options['password-file'])
+
     # world
-    world = World(web_app.eventReceived, engine)
+    world = World(web_app.eventReceived, engine, auth)
 
     # line protocol
     f = BotFactory(world, {
@@ -63,6 +70,8 @@ def makeService(options):
         'openportal': action.OpenPortal,
         'useportal': action.UsePortal,
         'squares': action.ListSquares,
+        'createteam': action.CreateTeam,
+        'jointeam': action.JoinTeam,
     })
     endpoint = endpoints.serverFromString(reactor, options['line-proto-endpoint'])
     line_service = internet.StreamServerEndpointService(endpoint, f)
