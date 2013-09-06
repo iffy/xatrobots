@@ -1,5 +1,5 @@
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
-from xatro.event import ActionPerformed
+from xatro.event import ActionPerformed, AttrDel
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy
 from xatro.action import Shoot, Repair, Look
 from xatro.router import Router
@@ -37,6 +37,11 @@ class ToStringTransformer(object):
     def AttrSet(self, (id, name, val)):
         return '%s.%s = %r' % (id, name, val)
 
+
+    @router.handle(AttrDel)
+    def AttrDel(self, (id, name)):
+        return '%s.%s DEL' % (id, name)
+        
 
     @router.handle(ItemAdded)
     def ItemAdded(self, (id, name, val)):

@@ -318,14 +318,46 @@ class MakeTool(object):
 
 
     def _revert(self, ev, world, thing_id, ore_id):
-        world.setAttr(thing_id, 'tool', None)
+        world.delAttr(thing_id, 'tool')
         world.setAttr(ore_id, 'kind', 'ore')
-        world.setAttr(ore_id, 'hp', None)
+
+
+
+class OpenPortal(object):
+
+
+    implements(IAction)
+
+
+    def __init__(self, thing, ore, user):
+        self.thing = thing
+        self.ore = ore
+        self.user = user
+
+
+    def emitters(self):
+        return [self.thing, self.user]
+
+
+    def execute(self, world):
+        """
+        Open a portal for another bot.
+        """
+        world.setAttr(self.ore, 'kind', 'portal')
+        world.setAttr(self.ore, 'portal_user', self.user)
+
+        # watch for the death of the opener
+        d = world.onBecome(self.thing, 'location', None)
+        d.addCallback(self._revert, world, self.ore)
+
+
+    def _revert(self, ev, world, ore_id):
+        world.setAttr(ore_id, 'kind', 'ore')
+        world.delAttr(ore_id, 'portal_user')
 
 
 
 
-# MakeTool(ore, kind_of_tool)
 # OpenPortal(code)
 # UsePortal(code)
 # Status(thing)

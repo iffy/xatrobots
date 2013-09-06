@@ -1,6 +1,7 @@
 from twisted.python import log
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
+from xatro.event import AttrDel
 from xatro.router import Router
 
 
@@ -43,6 +44,10 @@ class State(object):
     def handle_AttrSet(self, (id, name, value)):
         self.state[id][name] = value
 
+
+    @router.handle(AttrDel)
+    def handle_AttrDel(self, (id, name)):
+        del self.state[id][name]
 
     @router.handle(ItemAdded)
     def handle_ItemAdded(self, (id, name, value)):

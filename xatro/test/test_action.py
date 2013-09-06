@@ -6,7 +6,7 @@ from mock import MagicMock
 from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
-from xatro.action import Repair, Look, MakeTool
+from xatro.action import Repair, Look, MakeTool, OpenPortal
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
@@ -531,9 +531,8 @@ class MakeToolTest(TestCase):
         # moving to None is death
         Move(bot['id'], None).execute(world)
 
-        self.assertEqual(bot['tool'], None, "Should unequip the tool")
+        self.assertNotIn('tool', bot, "Should unequip the tool")
         self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
-        self.assertEqual(ore['hp'], None, "Should set hp to None")
 
 
     def test_revertWhenKilled(self):
@@ -547,9 +546,55 @@ class MakeToolTest(TestCase):
 
         world.setAttr(ore['id'], 'hp', 0)
 
-        self.assertEqual(bot['tool'], None, "Should unequip the tool")
+        self.assertNotIn('tool', bot, "Should unequip the tool")
         self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
-        self.assertEqual(ore['hp'], None, "Should set hp to None")
+
+
+
+class OpenPortalTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, OpenPortal('me', 'ore', 'user'))
+
+
+    def test_emitters(self):
+        self.assertEqual(OpenPortal('me', 'ore', 'user').emitters(),
+                         ['me', 'user'])
+
+
+    def test_open(self):
+        """
+        You can open a portal on from some ore.
+        """
+        world = World(MagicMock())
+        ore = world.create('ore')
+        bot = world.create('bot')
+        OpenPortal(bot['id'], ore['id'], 'user').execute(world)
+
+        self.assertEqual(ore['portal_user'], 'user', "Should set the portal "
+                         "user to the id of the user that can use the portal")
+        self.assertEqual(ore['kind'], 'portal')
+
+
+    def test_openerDies(self):
+        """
+        If the opener dies before the portal is used, the portal reverts to
+        ore.
+        """
+        world = World(MagicMock())
+        ore = world.create('ore')
+        bot = world.create('bot')
+        OpenPortal(bot['id'], ore['id'], 'user').execute(world)
+
+        # it is death to move to the void
+        Move(bot['id'], None).execute(world)
+
+        self.assertEqual(ore['kind'], 'ore')
+        self.assertNotIn('portal_user', ore)
+
+
+
 
 
 

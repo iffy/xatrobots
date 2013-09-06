@@ -1,7 +1,7 @@
 from twisted.trial.unittest import TestCase
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
-from xatro.event import ActionPerformed
+from xatro.event import ActionPerformed, AttrDel
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
 from xatro.action import Repair
 from xatro.transformer import ToStringTransformer
@@ -38,6 +38,11 @@ class ToStringTransformerTest(TestCase):
     def test_AttrSet(self):
         self.assertSimple(AttrSet('bob', 'foo', 'val'),
                           "bob.foo = %r" % ('val',))
+
+
+    def test_AttrDel(self):
+        self.assertSimple(AttrDel('bob', 'foo'), "bob.foo DEL")
+
 
     def test_ItemAdded(self):
         self.assertSimple(ItemAdded('bob', 'foo', 'something'),

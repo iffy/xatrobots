@@ -9,7 +9,7 @@ from functools import wraps
 from weakref import WeakKeyDictionary
 
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
-from xatro.event import ActionPerformed
+from xatro.event import ActionPerformed, AttrDel
 from xatro.state import State
 
 
@@ -114,6 +114,13 @@ class World(object):
         on_change = self._on_change[(object_id, attr_name)]
         while on_change:
             on_change.pop(0).callback(value)
+
+
+    def delAttr(self, object_id, attr_name):
+        """
+        Delete an attribute from an object.
+        """
+        self.emit(AttrDel(object_id, attr_name), object_id)
 
 
     def addItem(self, object_id, attr_name, value):

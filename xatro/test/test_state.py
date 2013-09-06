@@ -3,6 +3,7 @@ from twisted.trial.unittest import TestCase
 
 from xatro.state import State
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
+from xatro.event import AttrDel
 
 
 
@@ -36,6 +37,17 @@ class StateTest(TestCase):
         state.eventReceived(Created('foo'))
         state.eventReceived(AttrSet('foo', 'theattr', 4))
         self.assertEqual(state.state['foo']['theattr'], 4)
+
+
+    def test_AttrDel(self):
+        """
+        When an attribute is deleted, it should be deleted in the state dict.
+        """
+        state = State()
+        state.eventReceived(Created('foo'))
+        state.eventReceived(AttrSet('foo', 'name', 10))
+        state.eventReceived(AttrDel('foo', 'name'))
+        self.assertNotIn('name', state.state['foo'])
 
 
     def test_ItemAdded(self):

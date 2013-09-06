@@ -5,7 +5,7 @@ from mock import MagicMock
 
 from xatro.world import World
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
-from xatro.event import ActionPerformed
+from xatro.event import ActionPerformed, AttrDel
 
 
 
@@ -95,6 +95,21 @@ class WorldTest(TestCase):
         ev.assert_any_call(AttrSet(obj['id'], 'foo', 'bar'))
         obj = world.get(obj['id'])
         self.assertEqual(obj['foo'], 'bar')
+
+
+    def test_delAttr(self):
+        """
+        You can delete attributes.
+        """
+        ev = MagicMock()
+        world = World(ev)
+        obj = world.create('foo')
+        world.setAttr(obj['id'], 'foo', 'bar')
+        ev.reset_mock()
+
+        world.delAttr(obj['id'], 'foo')
+        ev.assert_any_call(AttrDel(obj['id'], 'foo'))
+        self.assertNotIn('foo', world.get(obj['id']))
 
 
     def test_destroy(self):
