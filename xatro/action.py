@@ -1,7 +1,7 @@
-
+from twisted.internet import defer
 from zope.interface import implements
-from xatro.interface import IAction
 
+from xatro.interface import IAction
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
@@ -84,6 +84,10 @@ class Look(object):
         return []
 
 
+def _ignoreCancellation(err):
+    err.trap(defer.CancelledError)
+
+
 def _receiveEnergy(world, obj_id, energy_id):
     """
     Receive energy, and appropriately watch for the energy's destruction.
@@ -94,7 +98,8 @@ def _receiveEnergy(world, obj_id, energy_id):
     # wait for it to be destroyed
     d = world.onEvent(energy_id, Destroyed(energy_id))
     d.addCallback(_rmFromEnergyPool, world, obj_id)
-    world.setAttr(energy_id, '_onDestroy', d)
+    d.addErrback(_ignoreCancellation)
+    world.envelope(energy_id)['_onDestroy'] = d
 
 
 def _rmFromEnergyPool(ev, world, obj_id):
@@ -184,8 +189,7 @@ class ShareEnergy(object):
         for e in giver['energy'][:amount]:
             # remove from giver (and unsubscribe from energy destruction)
             world.removeItem(giver_id, 'energy', e)
-            e_obj = world.get(e)
-            e_obj['_onDestroy'].cancel()
+            world.envelope(e)['_onDestroy'].cancel()
 
             # add to receiver (and subscribe to energy destruction)
             _receiveEnergy(world, receiver_id, e)
