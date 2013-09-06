@@ -8,6 +8,7 @@ from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
 from xatro.action import Repair, Look, MakeTool, OpenPortal, UsePortal
 from xatro.action import ListSquares, AddLock, BreakLock, JoinTeam
+from xatro.action import CreateTeam
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
@@ -823,11 +824,30 @@ class BreakLockTest(TestCase):
 
 
 
+class CreateTeamTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, CreateTeam('me', 'teamA', 'password'))
+
+
+    def test_emitters(self):
+        self.assertEqual(CreateTeam('me', 'teamA', 'password').emitters(), [])
+
+
+    def test_execute(self):
+        """
+        Should set the password for a team.
+        """
+        authenticator = MagicMock()
+
+
+
 class JoinTeamTest(TestCase):
 
 
     def test_IAction(self):
-        verifyObject(IAction, JoinTeam('me', 'teamA'))
+        verifyObject(IAction, JoinTeam('me', 'teamA', 'password'))
 
 
     def test_emitters(self):
@@ -836,9 +856,12 @@ class JoinTeamTest(TestCase):
 
     def test_execute(self):
         """
-        Should set the team name
+        Should set the team name if the password matches.
         """
-        world = World(MagicMock())
+        authenticator = MagicMock()
+        authenticator.checkPassword.return_value = None
+
+        world = World(MagicMock(), authenticator)
         thing = world.create('thing')
         
         JoinTeam(thing['id'], 'foo').execute(world)
