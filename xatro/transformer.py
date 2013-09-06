@@ -201,7 +201,7 @@ class DictTransformer(object):
     def ActionPerformed(self, event):
         return {
             'ev': 'action',
-            'action': event.action,
+            'action': self.transform(event.action),
         }
 
 

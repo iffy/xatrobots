@@ -179,8 +179,10 @@ class DictTransformerTest(TestCase):
 
 
     def test_ActionPerformed(self):
-        self.assertSimple(ActionPerformed('foo'),
-                            {'ev': 'action', 'action': 'foo'})
+        transformer = DictTransformer()
+        self.assertSimple(ActionPerformed(Charge('foo')),
+                            {'ev': 'action',
+                             'action': transformer.transform(Charge('foo'))})
 
 
     def test_Move(self):

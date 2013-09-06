@@ -4,6 +4,7 @@ from klein import Klein
 
 import json
 
+from xatro.transformer import DictTransformer
 from xatro.state import State
 
 
@@ -31,6 +32,7 @@ class GameObserver(object):
 
     def __init__(self, static_root):
         self._state = State()
+        self._transformer = DictTransformer()
         self.static_root = static_root
         self._observers = []
 
@@ -40,7 +42,8 @@ class GameObserver(object):
         Game event received.
         """
         self._state.eventReceived(event)
-        self.sendMessage('ev', toJson(event))
+        message = self._transformer.transform(event)
+        self.sendMessage('ev', json.dumps(message))
 
 
     @app.route('/game')
