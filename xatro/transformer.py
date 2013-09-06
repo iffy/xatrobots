@@ -131,3 +131,203 @@ class ToStringTransformer(object):
 
 
 
+class DictTransformer(object):
+    """
+    I encode events and action as dictionaries.
+    """
+
+    router = Router()
+
+    def transform(self, thing):
+        return self.router.call(thing.__class__, thing)
+
+
+    @router.handle(Created)
+    def Created(self, event):
+        return {
+            'ev': 'created',
+            'id': event.id,
+        }
+
+
+    @router.handle(Destroyed)
+    def Destroyed(self, event):
+        return {
+            'ev': 'destroyed',
+            'id': event.id,
+        }
+
+
+    @router.handle(AttrSet)
+    def AttrSet(self, event):
+        return {
+            'ev': 'attrset',
+            'id': event.id,
+            'name': event.name,
+            'value': event.value,
+        }
+
+
+    @router.handle(AttrDel)
+    def AttrDel(self, event):
+        return {
+            'ev': 'attrdel',
+            'id': event.id,
+            'name': event.name,
+        }
+
+
+    @router.handle(ItemAdded)
+    def ItemAdded(self, event):
+        return {
+            'ev': 'itemadded',
+            'id': event.id,
+            'name': event.name,
+            'value': event.added_value,
+        }
+
+
+    @router.handle(ItemRemoved)
+    def ItemRemoved(self, event):
+        return {
+            'ev': 'itemremoved',
+            'id': event.id,
+            'name': event.name,
+            'value': event.removed_value,
+        }
+
+
+    @router.handle(ActionPerformed)
+    def ActionPerformed(self, event):
+        return {
+            'ev': 'action',
+            'action': event.action,
+        }
+
+
+    @router.handle(action.AddLock)
+    def AddLock(self, action):
+        return {
+            'action': 'addlock',
+            'subject': action.doer,
+            'target': action.target,
+        }
+
+
+    @router.handle(action.BreakLock)
+    def BreakLock(self, action):
+        return {
+            'action': 'breaklock',
+            'subject': action.doer,
+            'target': action.target,
+        }
+
+
+    @router.handle(action.Charge)
+    def Charge(self, action):
+        return {
+            'action': 'charge',
+            'subject': action.thing,
+        }
+
+
+    @router.handle(action.ConsumeEnergy)
+    def ConsumeEnergy(self, action):
+        return {
+            'action': 'consume',
+            'subject': action.thing,
+            'amount': action.amount,
+        }
+
+
+    @router.handle(action.JoinTeam)
+    def JoinTeam(self, action):
+        return {
+            'action': 'jointeam',
+            'subject': action.thing,
+            'team': action.team_name,
+        }
+
+
+    @router.handle(action.ListSquares)
+    def ListSquares(self, action):
+        return {
+            'action': 'listsquares',
+            'subject': action.eyes,
+        }
+
+
+    @router.handle(action.Look)
+    def Look(self, action):
+        return {
+            'action': 'look',
+            'subject': action.thing,
+        }
+
+
+    @router.handle(action.MakeTool)
+    def MakeTool(self, action):
+        return {
+            'action': 'maketool',
+            'subject': action.thing,
+            'ore': action.ore,
+            'tool': action.tool,
+        }
+
+
+    @router.handle(action.Move)
+    def Move(self, action):
+        return {
+            'action': 'move',
+            'subject': action.thing,
+            'target': action.dst,
+        }
+
+
+    @router.handle(action.OpenPortal)
+    def OpenPortal(self, action):
+        return {
+            'action': 'openportal',
+            'subject': action.thing,
+            'ore': action.ore,
+            'portal_user': action.user,
+        }
+
+
+    @router.handle(action.Repair)
+    def Repair(self, action):
+        return {
+            'action': 'repair',
+            'subject': action.repairman,
+            'target': action.target,
+            'amount': action.amount,
+        }
+
+
+    @router.handle(action.ShareEnergy)
+    def ShareEnergy(self, action):
+        return {
+            'action': 'share',
+            'subject': action.giver,
+            'target': action.receiver,
+            'amount': action.amount,
+        }
+
+
+    @router.handle(action.Shoot)
+    def Shoot(self, action):
+        return {
+            'action': 'shoot',
+            'subject': action.shooter,
+            'target': action.target,
+            'damage': action.damage,
+        }
+
+
+    @router.handle(action.UsePortal)
+    def UsePortal(self, action):
+        return {
+            'action': 'useportal',
+            'subject': action.thing,
+            'portal': action.portal,
+        }

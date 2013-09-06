@@ -129,6 +129,8 @@ app.factory('Events', function() {
     this.subscribers.push(func);
   }
   this.eventReceived = function(ev) {
+    console.log('got event');
+    console.log(ev);
     angular.forEach(this.subscribers, function(subscriber) {
       subscriber(ev);
     })

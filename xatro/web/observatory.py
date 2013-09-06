@@ -4,7 +4,7 @@ from klein import Klein
 
 import json
 
-from xatro.server.state import GameState
+from xatro.state import State
 
 
 
@@ -30,7 +30,7 @@ class GameObserver(object):
 
 
     def __init__(self, static_root):
-        self._state = GameState()
+        self._state = State()
         self.static_root = static_root
         self._observers = []
 
@@ -57,7 +57,7 @@ class GameObserver(object):
         Return the current state of the game.
         """
         request.setHeader('Content-Type', 'application/json')
-        return json.dumps(self._state.objects)
+        return json.dumps(self._state.state)
 
 
     @app.route('/events')
