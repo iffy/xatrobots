@@ -45,8 +45,8 @@ class Move(object):
             world.removeItem(old_location_id, 'contents', thing)
 
             # unsubscribe previous location events
-            #world.unsubscribeFrom(old_location_id, world.receiverFor(thing))
-            #world.unsubscribeFrom(thing, world.receiverFor(old_location_id))
+            world.unsubscribeFrom(old_location_id, world.receiverFor(thing))
+            world.unsubscribeFrom(thing, world.receiverFor(old_location_id))
 
         # tell the thing where it is
         world.setAttr(thing, 'location', dst)
@@ -56,8 +56,8 @@ class Move(object):
             world.addItem(dst, 'contents', thing)
 
             # subscribe location and thing to each other's events
-            #world.subscribeTo(dst, world.receiverFor(thing))
-            #world.subscribeTo(thing, world.receiverFor(dst))
+            world.subscribeTo(dst, world.receiverFor(thing))
+            world.subscribeTo(thing, world.receiverFor(dst))
 
             # events the dst receives should be emitted
             world.receiveFor(dst, world.emitterFor(dst))

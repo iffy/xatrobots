@@ -127,6 +127,8 @@ class WorldTest(TestCase):
         world.destroy(obj['id'])
 
         ev.assert_any_call(Destroyed(obj['id']))
+        self.assertEqual(called, [Destroyed(obj['id'])], "Should notify things"
+                         " receiving events for the object")
         self.assertNotIn(obj['id'], world.objects)
 
 
@@ -384,6 +386,36 @@ class WorldTest(TestCase):
         self.assertEqual(world.receiverFor('foo'), world.receiverFor('foo'))
 
 
+    def test_selfReceiving(self):
+        """
+        All things should receive their own events by default.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo')
+
+        called = []
+        world.receiveFor(thing['id'], called.append)
+
+        world.emit('foo', thing['id'])
+        self.assertEqual(called, ['foo'], "Things should receive their own "
+                         "emissions")
+
+
+    def test_disable_selfReceiving(self):
+        """
+        You can disable self-receipt by creating things with a special arg.
+        """
+        world = World(MagicMock())
+        thing = world.create('foo', receive_emissions=False)
+
+        called = []
+        world.receiveFor(thing['id'], called.append)
+
+        world.emit('foo', thing['id'])
+        self.assertEqual(called, [], "Should not receive because it was "
+                         "disabled on creation.")
+
+
     def test_destroy_disableSubscribers(self):
         """
         When an object is destroyed, things subscribed to its events will
@@ -402,6 +434,7 @@ class WorldTest(TestCase):
         emitter = world.emitterFor(thing['id'])
 
         world.destroy(thing['id'])
+        received.pop()
         emitted.pop()
 
         receiver('foo')
@@ -485,8 +518,10 @@ class WorldTest(TestCase):
         # If things are working properly, then obj3 will receive
         # the 'obj2' emissions AFTER it receives the event from obj1
         world.emit('obj1', obj1)
-        self.assertEqual(obj1_received, ['obj2'], "obj1 should receive obj2")
-        self.assertEqual(obj2_received, ['obj1'], "obj2 should receive obj1")
+        self.assertEqual(obj1_received, ['obj1', 'obj2'],
+                         "obj1 should receive obj1 from self, then obj2")
+        self.assertEqual(obj2_received, ['obj1', 'obj2'],
+                         "obj2 should receive obj1, then obj2 from self")
         self.assertEqual(obj3_received, ['obj1', 'obj2'],
                          "obj3 should receiver obj1 first, then obj2")
 
