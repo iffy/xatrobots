@@ -59,7 +59,7 @@ class Move(object):
             world.subscribeTo(dst, world.receiverFor(thing))
             world.subscribeTo(thing, world.receiverFor(dst))
 
-            # events the dst receives should be emitted
+            # location should emit what it receives
             world.receiveFor(dst, world.emitterFor(dst))
 
 

@@ -1,5 +1,5 @@
 from twisted.trial.unittest import TestCase
-from twisted.internet import defer, threads
+from twisted.internet import defer
 
 from mock import MagicMock
 

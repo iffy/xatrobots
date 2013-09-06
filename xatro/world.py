@@ -164,7 +164,7 @@ class World(object):
             event, object_id = self._event_queue.pop(0)
             
             # update state
-            self._state.eventReceived(event)
+            self._callOnce(called_list, self._state.eventReceived, event)
 
             try:
                 self._callOnce(called_list, self.event_receiver, event)
