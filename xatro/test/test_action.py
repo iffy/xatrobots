@@ -7,7 +7,7 @@ from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
 from xatro.action import Repair, Look, MakeTool, OpenPortal, UsePortal
-from xatro.action import ListSquares
+from xatro.action import ListSquares, AddLock, BreakLock, JoinTeam
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
@@ -765,6 +765,86 @@ class ListSquaresTest(TestCase):
             }
         }, output)
         self.assertEqual(len(output), 2)
+
+
+
+class AddLockTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, AddLock('me', 'what'))
+
+
+    def test_emitters(self):
+        self.assertEqual(AddLock('me', 'what').emitters(), ['me', 'what'])
+
+
+    def test_execute(self):
+        """
+        Locking something should increase the number of 'locks' on the thing.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')['id']
+        box = world.create('box')
+
+        AddLock(thing, box['id']).execute(world)
+        self.assertEqual(box['locks'], 1)
+
+
+
+class BreakLockTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, BreakLock('me', 'what'))
+
+
+    def test_emitters(self):
+        self.assertEqual(BreakLock('me', 'what').emitters(), ['me', 'what'])
+
+
+    def test_execute(self):
+        """
+        Breaking a lock will reduce the number of locks on a thing.  It can't
+        be reduced below 0, though.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')['id']
+        box = world.create('box')
+
+        AddLock(thing, box['id']).execute(world)
+        BreakLock(thing, box['id']).execute(world)
+        self.assertEqual(box['locks'], 0)
+
+        # make sure it doesn't go negative
+        BreakLock(thing, box['id']).execute(world)
+        self.assertEqual(box['locks'], 0, "It can't have a negative number "
+                         "of locks")
+
+
+
+class JoinTeamTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, JoinTeam('me', 'teamA'))
+
+
+    def test_emitters(self):
+        self.assertEqual(JoinTeam('me', 'teamA').emitters(), ['me'])
+
+
+    def test_execute(self):
+        """
+        Should set the team name
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+        
+        JoinTeam(thing['id'], 'foo').execute(world)
+        self.assertEqual(thing['team'], 'foo')
+
+
 
 
 

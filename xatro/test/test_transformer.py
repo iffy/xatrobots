@@ -4,6 +4,7 @@ from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed, AttrDel
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
 from xatro.action import Repair, MakeTool, OpenPortal, UsePortal, ListSquares
+from xatro.action import AddLock, BreakLock, JoinTeam
 from xatro.transformer import ToStringTransformer
 
 
@@ -103,3 +104,18 @@ class ToStringTransformerTest(TestCase):
 
     def test_ListSquares(self):
         self.assertSimple(ListSquares('foo'), 'foo listed squares')
+
+
+    def test_AddLock(self):
+        self.assertSimple(AddLock('foo', 'bar'), 'foo added lock to bar')
+
+
+    def test_BreakLock(self):
+        self.assertSimple(BreakLock('foo', 'bar'), 'foo broke lock on bar')
+
+
+    def test_JoinTeam(self):
+        self.assertSimple(JoinTeam('foo', 'bar'), 'foo joined team bar')
+
+
+

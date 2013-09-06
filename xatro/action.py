@@ -455,7 +455,73 @@ class ListSquares(object):
         return ret
 
 
-# Status(thing)
 
-# AddLock(portal)
-# BreakLock(portal)
+class AddLock(object):
+    """
+    Add a lock to something
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, doer, target):
+        self.doer = doer
+        self.target = target
+
+
+    def emitters(self):
+        return [self.doer, self.target]
+
+
+    def execute(self, world):
+        target = world.get(self.target)
+        world.setAttr(target['id'], 'locks', target.get('locks', 0) + 1)
+
+
+
+class BreakLock(object):
+    """
+    Remove a lock from something
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, doer, target):
+        self.doer = doer
+        self.target = target
+
+
+    def emitters(self):
+        return [self.doer, self.target]
+
+
+    def execute(self, world):
+        target = world.get(self.target)
+        new_locks = max(target.get('locks', 0) - 1, 0)
+        world.setAttr(target['id'], 'locks', new_locks)
+
+
+
+class JoinTeam(object):
+    """
+    Join a team.
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, thing, team_name):
+        self.thing = thing
+        self.team_name = team_name
+
+
+    def emitters(self):
+        return [self.thing]
+
+
+    def execute(self, world):
+        world.setAttr(self.thing, 'team', self.team_name)
+
+
+

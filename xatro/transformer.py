@@ -1,7 +1,6 @@
 from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed, AttrDel
-from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
-from xatro.action import Repair, MakeTool, OpenPortal, UsePortal, ListSquares
+from xatro import action
 from xatro.router import Router
 
 
@@ -59,60 +58,75 @@ class ToStringTransformer(object):
         return 'ACTION %s' % (transformed_action,)
 
 
-    @router.handle(Move)
+    @router.handle(action.Move)
     def Move(self, action):
         return '%s moved to %s' % (action.thing, action.dst)
 
 
-    @router.handle(Charge)
+    @router.handle(action.Charge)
     def Charge(self, action):
         return '%s charged' % (action.thing,)
 
 
-    @router.handle(ShareEnergy)
+    @router.handle(action.ShareEnergy)
     def ShareEnergy(self, action):
         return '%s gave %s %d energy' % (action.giver, action.receiver, action.amount)
 
 
-    @router.handle(ConsumeEnergy)
+    @router.handle(action.ConsumeEnergy)
     def ConsumeEnergy(self, action):
         return '%s consumed %d energy' % (action.thing, action.amount)
 
 
-    @router.handle(Shoot)
+    @router.handle(action.Shoot)
     def Shoot(self, action):
         return '%s shot %s for %d' % (action.shooter, action.target,
                                       action.damage)
 
-    @router.handle(Repair)
+    @router.handle(action.Repair)
     def Repair(self, action):
         return '%s repaired %s by %d' % (action.repairman, action.target,
                                          action.amount)
 
-    @router.handle(Look)
+    @router.handle(action.Look)
     def Look(self, action):
         return '%s looked around' % (action.thing,)
 
 
-    @router.handle(MakeTool)
+    @router.handle(action.MakeTool)
     def MakeTool(self, action):
         return '%s made %s into %s' % (action.thing, action.ore, action.tool)
 
 
-    @router.handle(OpenPortal)
+    @router.handle(action.OpenPortal)
     def OpenPortal(self, action):
         return '%s used %s to open a portal for %s' % (action.thing,
                                                        action.ore,
                                                        action.user)
 
-    @router.handle(UsePortal)
+    @router.handle(action.UsePortal)
     def UsePortal(self, action):
         return '%s used portal %s' % (action.thing, action.portal)
 
 
-    @router.handle(ListSquares)
+    @router.handle(action.ListSquares)
     def ListSquares(self, action):
         return '%s listed squares' % (action.eyes,)
+
+
+    @router.handle(action.AddLock)
+    def AddLock(self, action):
+        return '%s added lock to %s' % (action.doer, action.target)
+
+
+    @router.handle(action.BreakLock)
+    def BreakLock(self, action):
+        return '%s broke lock on %s' % (action.doer, action.target)
+
+
+    @router.handle(action.JoinTeam)
+    def JoinTeam(self, action):
+        return '%s joined team %s' % (action.thing, action.team_name)
 
 
 
