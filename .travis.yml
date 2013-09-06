@@ -6,6 +6,6 @@ python:
 
 
 install:
-  - pip install -r requirements.txt --use-mirrors
+  - pip install pyflakes -r requirements.txt --use-mirrors
 
 script: make test
