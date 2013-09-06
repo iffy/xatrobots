@@ -6,7 +6,7 @@ from mock import MagicMock
 from xatro.interface import IAction
 from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
-from xatro.action import Repair, Look, MakeTool, OpenPortal
+from xatro.action import Repair, Look, MakeTool, OpenPortal, UsePortal
 from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
@@ -592,6 +592,115 @@ class OpenPortalTest(TestCase):
 
         self.assertEqual(ore['kind'], 'ore')
         self.assertNotIn('portal_user', ore)
+
+
+
+class UsePortalTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, UsePortal('me', 'portal_id'))
+
+
+    def test_emitters(self):
+        self.assertEqual(UsePortal('me', 'portal_id').emitters(), ['me'])
+
+
+    def usedPortal(self):
+        self.world = World(MagicMock())
+        self.place = self.world.create('place')
+        self.ore = self.world.create('ore')
+        self.bot = self.world.create('bot')
+        self.lander = self.world.create('lander')
+        
+        Move(self.ore['id'], self.place['id']).execute(self.world)
+        OpenPortal(self.bot['id'], self.ore['id'],
+                   self.lander['id']).execute(self.world)
+        UsePortal(self.lander['id'], self.ore['id']).execute(self.world)
+
+
+    def test_use(self):
+        """
+        Using a portal will cause the thing that used it to be moved to the
+        location where the portal is, remove the portal_user attribute from
+        the portal.
+        """
+        self.usedPortal()
+        lander = self.lander
+        ore = self.ore
+
+        self.assertEqual(lander['location'], ore['location'], "Should move "
+                         "the lander into the location")
+
+
+    def test_portalDestroyed(self):
+        """
+        If a portal is destroyed, the user of the portal is sent to the void.
+        """
+        self.usedPortal()
+
+        # destroy the portal
+        self.world.destroy(self.ore['id'])
+
+        self.assertEqual(self.lander['location'], None, "Should send lander "
+                         "to the void")
+
+
+    def test_portalKilled(self):
+        """
+        If a portal is killed (by hp reaching 0) the user of the portal is sent
+        to the void and the portal reverts to ore.
+        """
+        self.usedPortal()
+
+        # kill the portal
+        self.world.setAttr(self.ore['id'], 'hp', 0)
+
+        self.assertEqual(self.lander['location'], None, "Should send lander "
+                         "to the void")
+        self.assertEqual(self.ore['kind'], 'ore', "Should revert to ore")
+        self.assertNotIn('portal_user', self.ore, "Should delete portal_user "
+                         "attribute")
+
+
+    def test_portal_user_noMatch(self):
+        """
+        It is NotAllowed to use a portal with a portal_user different than the
+        thing trying to use the portal.
+        """
+        world = World(MagicMock())
+        place = world.create('place')
+        ore = world.create('ore')
+        bot = world.create('bot')
+        lander = world.create('lander')
+        imposter = world.create('imposter')
+        
+        Move(ore['id'], place['id']).execute(world)
+        OpenPortal(bot['id'], ore['id'],
+                   lander['id']).execute(world)
+        self.assertRaises(NotAllowed,
+                          UsePortal(imposter['id'], ore['id']).execute, world)
+
+
+    def test_openerDiesAfterUse(self):
+        """
+        If the opener dies or is destroyed AFTER a portal is used, it should
+        not affect the portal.
+        """
+        self.usedPortal()
+
+        # kill the opener (send them to the void)
+        Move(self.bot['id'], None).execute(self.world)
+
+        # destroy the opener
+        self.world.destroy(self.bot['id'])
+
+        self.assertEqual(self.ore['kind'], 'portal', "Should still be a portal")
+        self.assertEqual(self.ore['portal_user'], self.lander['id'],
+                         "Should still be tied to the lander")
+
+
+
 
 
 

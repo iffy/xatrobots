@@ -353,12 +353,62 @@ class OpenPortal(object):
         # watch for the death of the opener
         d = world.onBecome(self.thing, 'location', None)
         d.addCallback(self._revert, world, self.ore)
+        d.addErrback(_ignoreCancellation)
+        world.envelope(self.ore)['_onOpenerDeath'] = d
 
 
     def _revert(self, ev, world, ore_id):
         world.setAttr(ore_id, 'kind', 'ore')
         world.delAttr(ore_id, 'portal_user')
 
+
+
+class UsePortal(object):
+    """
+    Use a portal to land in the location that the portal is in.
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, thing, portal):
+        self.thing = thing
+        self.portal = portal
+
+
+    def emitters(self):
+        return [self.thing]
+
+
+    def execute(self, world):
+        portal = world.get(self.portal)
+
+        # make sure the portal is for this user
+        if portal['portal_user'] != self.thing:
+            raise NotAllowed('Portal is for %s' % (portal['portal_user'],))
+
+        Move(self.thing, portal['location']).execute(world)
+
+        # watch for destruction of portal
+        d = world.onEvent(self.portal, Destroyed(self.portal))
+        d.addCallback(self._killUser, world, self.thing)
+
+        # watch for death of portal
+        d = world.onBecome(self.portal, 'hp', 0)
+        d.addCallback(self._revert, world, self.portal, self.thing)
+
+        # stop watching for the death of the owner
+        world.envelope(self.portal)['_onOpenerDeath'].cancel()
+
+
+    def _killUser(self, ev, world, thing):
+        Move(thing, None).execute(world)
+
+
+    def _revert(self, ev, world, ore_id, thing):
+        self._killUser(ev, world, thing)
+        world.setAttr(ore_id, 'kind', 'ore')
+        world.delAttr(ore_id, 'portal_user')
 
 
 
