@@ -221,6 +221,23 @@ class BotLineProtocolTest(TestCase):
         self.assertEqual(proto.transport.value(), 'foo\r\n')
 
 
+    def test_commandResultDeferredError(self):
+        """
+        If the result is a deferred failure, say something on the wire.
+        """
+        avatar = MagicMock()
+        avatar.availableCommands = lambda: {'move': Move}
+        avatar.execute.return_value = defer.fail(Exception('foo'))
+        
+        proto = BotLineProtocol(avatar)
+        proto.makeConnection(StringTransport())
+
+        proto.lineReceived('move east-23 twice 3')
+
+        self.assertEqual(proto.transport.value(),
+                         'ERROR %s\r\n' % (Exception('foo'),))
+
+
 
 
 

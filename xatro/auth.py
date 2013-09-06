@@ -51,7 +51,7 @@ class FileStoredPasswords(object):
         try:
             pw_hash = self._get(name)
         except NotFound:
-            return defer.fail(BadPassword(name))
+            return defer.fail(BadPassword('Bad password: %r' % (name,)))
         d = checkPassword(pw_hash, password)
         d.addCallback(self._passwordMatches, name)
         return d
@@ -60,4 +60,4 @@ class FileStoredPasswords(object):
     def _passwordMatches(self, matches, name):
         if matches:
             return name
-        raise BadPassword(name)
+        raise BadPassword('Bad password: %r' % (name,))

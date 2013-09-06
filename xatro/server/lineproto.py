@@ -96,11 +96,16 @@ class BotLineProtocol(LineOnlyReceiver):
         args = map(maybeInt, parts[1:])
         d = defer.maybeDeferred(self.avatar.execute, cmd_cls, *args)
         d.addCallback(self._handleCommandResult)
+        d.addErrback(self._handleCommandFailure)
 
 
     def _handleCommandResult(self, result):
         if result:
             self.sendLine(self.event_transformer.transform(result))
+
+
+    def _handleCommandFailure(self, err):
+        self.sendLine(str(err.value))
 
 
 
