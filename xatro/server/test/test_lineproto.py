@@ -235,7 +235,7 @@ class BotLineProtocolTest(TestCase):
         proto.lineReceived('move east-23 twice 3')
 
         self.assertEqual(proto.transport.value(),
-                         'ERROR %s\r\n' % (Exception('foo'),))
+                         '%s\r\n' % (Exception('foo'),))
 
 
 
