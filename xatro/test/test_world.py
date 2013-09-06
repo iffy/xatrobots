@@ -23,6 +23,14 @@ class WorldTest(TestCase):
         ev.assert_called_once_with('something')
 
 
+    def test_auth(self):
+        """
+        World can have an authenticator.
+        """
+        world = World(None, None, 'auth')
+        self.assertEqual(world.auth, 'auth')
+
+
     def test_execute(self):
         """
         Asking the world to execute a command will ask the (game) engine to

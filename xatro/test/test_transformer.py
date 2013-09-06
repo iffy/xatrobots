@@ -4,7 +4,7 @@ from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed, AttrDel
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
 from xatro.action import Repair, MakeTool, OpenPortal, UsePortal, ListSquares
-from xatro.action import AddLock, BreakLock, JoinTeam
+from xatro.action import AddLock, BreakLock, JoinTeam, CreateTeam
 from xatro.transformer import ToStringTransformer, DictTransformer
 
 
@@ -114,8 +114,13 @@ class ToStringTransformerTest(TestCase):
         self.assertSimple(BreakLock('foo', 'bar'), 'foo broke lock on bar')
 
 
+    def test_CreateTeam(self):
+        self.assertSimple(CreateTeam('foo', 'bar', 'pw'),
+                          'foo made team bar')
+
+
     def test_JoinTeam(self):
-        self.assertSimple(JoinTeam('foo', 'bar'), 'foo joined team bar')
+        self.assertSimple(JoinTeam('foo', 'bar', 'pw'), 'foo joined team bar')
 
 
 
@@ -277,9 +282,14 @@ class DictTransformerTest(TestCase):
                             'subject': 'foo',
                             'target': 'bar'})
 
+    def test_CreateTeam(self):
+        self.assertSimple(CreateTeam('foo', 'bar', 'pw'), {
+                            'action': 'createteam',
+                            'subject': 'foo',
+                            'team': 'bar'})
 
     def test_JoinTeam(self):
-        self.assertSimple(JoinTeam('foo', 'bar'), {
+        self.assertSimple(JoinTeam('foo', 'bar', 'pw'), {
                             'action': 'jointeam',
                             'subject': 'foo',
                             'team': 'bar'})

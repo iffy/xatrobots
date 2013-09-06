@@ -33,12 +33,15 @@ class World(object):
     """
 
 
-    def __init__(self, event_receiver, engine=None):
+    def __init__(self, event_receiver, engine=None, auth=None):
         """
         @param event_receiver: Function to be called with every emitted event.
         @param engine: Game engine.
+        @param auth: An authenticator (for teams).
         """
         self.engine = engine
+        self.auth = auth
+        
         self._state = State()
         self._event_queue = []
         self._event_queue_running = False

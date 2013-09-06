@@ -503,6 +503,29 @@ class BreakLock(object):
 
 
 
+class CreateTeam(object):
+    """
+    Create a team with a password.
+    """
+
+    implements(IAction)
+
+
+    def __init__(self, creator, team_name, password):
+        self.creator = creator
+        self.team_name = team_name
+        self.password = password
+
+
+    def emitters(self):
+        return []
+
+
+    def execute(self, world):
+        return world.auth.createEntity(self.team_name, self.password)
+
+
+
 class JoinTeam(object):
     """
     Join a team.
@@ -511,9 +534,10 @@ class JoinTeam(object):
     implements(IAction)
 
 
-    def __init__(self, thing, team_name):
+    def __init__(self, thing, team_name, password):
         self.thing = thing
         self.team_name = team_name
+        self.password = password
 
 
     def emitters(self):
@@ -521,7 +545,13 @@ class JoinTeam(object):
 
 
     def execute(self, world):
-        world.setAttr(self.thing, 'team', self.team_name)
+        d = world.auth.checkPassword(self.team_name, self.password)
+        d.addCallback(self._setTeam, world, self.thing)
+        return d
+
+
+    def _setTeam(self, team, world, thing):
+        world.setAttr(thing, 'team', team)
 
 
 

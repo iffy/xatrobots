@@ -1,6 +1,5 @@
 from twisted.trial.unittest import TestCase
 from twisted.internet import defer
-from twisted.python.filepath import FilePath
 
 
 from xatro.error import BadPassword
@@ -65,7 +64,7 @@ class FileStoredPasswordsTest(TestCase):
         yield auth.createEntity('foo', 'password')
 
         auth2 = FileStoredPasswords(f)
-        yield auth.checkPassword('foo', 'password')
+        yield auth2.checkPassword('foo', 'password')
 
 
 

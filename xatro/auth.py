@@ -1,6 +1,7 @@
 try:
-    from pysqlite2 import dbapi2 as sqlite
-except ImportError:
+    from pysqlite2 import dbapi2
+    sqlite = dbapi2
+except:
     import sqlite3 as sqlite
 
 from twisted.internet import defer
@@ -34,6 +35,7 @@ class FileStoredPasswords(object):
     def _set(self, name, pw_hash):
         self.db.execute('insert into entity (name, pw) values (?, ?)',
                         (buffer(name), buffer(pw_hash)))
+        self.db.commit()
 
 
     def createEntity(self, name, password):

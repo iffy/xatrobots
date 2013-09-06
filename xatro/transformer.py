@@ -124,6 +124,10 @@ class ToStringTransformer(object):
         return '%s broke lock on %s' % (action.doer, action.target)
 
 
+    @router.handle(action.CreateTeam)
+    def CreateTeam(self, action):
+        return '%s made team %s' % (action.creator, action.team_name)
+
     @router.handle(action.JoinTeam)
     def JoinTeam(self, action):
         return '%s joined team %s' % (action.thing, action.team_name)
@@ -237,6 +241,15 @@ class DictTransformer(object):
             'action': 'consume',
             'subject': action.thing,
             'amount': action.amount,
+        }
+
+
+    @router.handle(action.CreateTeam)
+    def CreateTeam(self, action):
+        return {
+            'action': 'createteam',
+            'subject': action.creator,
+            'team': action.team_name,
         }
 
 

@@ -1,4 +1,5 @@
 from twisted.trial.unittest import TestCase
+from twisted.internet import defer
 from zope.interface.verify import verifyObject
 
 from mock import MagicMock
@@ -10,7 +11,8 @@ from xatro.action import Repair, Look, MakeTool, OpenPortal, UsePortal
 from xatro.action import ListSquares, AddLock, BreakLock, JoinTeam
 from xatro.action import CreateTeam
 from xatro.event import Destroyed
-from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
+from xatro.auth import FileStoredPasswords
+from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed, BadPassword
 
 
 
@@ -826,6 +828,8 @@ class BreakLockTest(TestCase):
 
 class CreateTeamTest(TestCase):
 
+    timeout = 2
+
 
     def test_IAction(self):
         verifyObject(IAction, CreateTeam('me', 'teamA', 'password'))
@@ -839,7 +843,13 @@ class CreateTeamTest(TestCase):
         """
         Should set the password for a team.
         """
-        authenticator = MagicMock()
+        auth = FileStoredPasswords(self.mktemp())
+        world = World(MagicMock(), auth=auth)
+        thing = world.create('thing')
+        d = CreateTeam(thing['id'], 'teamA', 'password').execute(world)
+        def check(r):
+            self.assertEqual(r, 'teamA')
+        return d.addCallback(check)
 
 
 
@@ -851,21 +861,34 @@ class JoinTeamTest(TestCase):
 
 
     def test_emitters(self):
-        self.assertEqual(JoinTeam('me', 'teamA').emitters(), ['me'])
+        self.assertEqual(JoinTeam('me', 'teamA', 'password').emitters(), ['me'])
 
 
+    @defer.inlineCallbacks
     def test_execute(self):
         """
         Should set the team name if the password matches.
         """
-        authenticator = MagicMock()
-        authenticator.checkPassword.return_value = None
+        auth = FileStoredPasswords(self.mktemp())
+        world = World(MagicMock(), auth=auth)
 
-        world = World(MagicMock(), authenticator)
         thing = world.create('thing')
+        yield CreateTeam(thing['id'], 'teamA', 'password').execute(world)
+        yield JoinTeam(thing['id'], 'teamA', 'password').execute(world)
         
-        JoinTeam(thing['id'], 'foo').execute(world)
-        self.assertEqual(thing['team'], 'foo')
+        self.assertEqual(thing['team'], 'teamA')
+
+
+    @defer.inlineCallbacks
+    def test_badPassword(self):
+        auth = FileStoredPasswords(self.mktemp())
+        world = World(MagicMock(), auth=auth)
+
+        thing = world.create('thing')
+        yield CreateTeam(thing['id'], 'teamA', 'password').execute(world)
+        self.assertFailure(JoinTeam(thing['id'], 'teamA',
+                           'not password').execute(world), BadPassword)
+
 
 
 
