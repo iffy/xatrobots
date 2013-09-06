@@ -48,7 +48,35 @@ class WorldTest(TestCase):
         r = world.execute(action)
         
         engine.execute.assert_called_once_with(world, action)
-        self.assertEqual(r, 'response', "Should return the result of execution")
+        self.assertEqual(self.successResultOf(r), 'response',
+                         "Should return the result of execution")
+        world.emit.assert_called_once_with(ActionPerformed(action), 'I did it')
+
+
+    def test_execute_Deferred(self):
+        """
+        If a command returns a successful deferred, wait to emit.
+        """
+        engine = MagicMock()
+        d = defer.Deferred()
+        engine.execute.return_value = d
+        
+        world = World(MagicMock(), engine)
+        world.emit = MagicMock()
+
+        action = MagicMock()
+        action.emitters.return_value = ['I did it']
+
+        r = world.execute(action)
+        self.assertEqual(r, d, "Should return the result of the execution")
+        
+        engine.execute.assert_called_once_with(world, action)
+        self.assertEqual(world.emit.call_count, 0, "Should not have emitted "
+                         "the ActionPerformed event yet, because it hasn't "
+                         "finished")
+        d.callback('foo')
+        self.assertEqual(self.successResultOf(r), 'foo',
+                         "Should return the result of execution")
         world.emit.assert_called_once_with(ActionPerformed(action), 'I did it')
 
 

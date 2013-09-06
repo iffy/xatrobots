@@ -62,11 +62,18 @@ class World(object):
 
         @param action: An L{IAction}-implementing instance.
         """
-        ret = self.engine.execute(self, action)
+        d = defer.maybeDeferred(self.engine.execute, self, action)
+        return d.addCallback(self._executionFinished, action)
+
+
+    def _executionFinished(self, result, action):
+        """
+        Execution of an action finished.
+        """
         event = ActionPerformed(action)
         for object_id in action.emitters():
             self.emit(event, object_id)
-        return ret
+        return result
 
 
     def create(self, kind, receive_emissions=True):
