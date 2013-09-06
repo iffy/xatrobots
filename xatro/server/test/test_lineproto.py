@@ -169,7 +169,8 @@ class BotLineProtocolTest(TestCase):
     def test_lineReceived(self):
         """
         Lines received are intrepretted as a space-separated argument list
-        and executed as a command on the avatar.
+        and executed as a command on the avatar.  The result is returned over
+        the wire.
         """
         avatar = MagicMock()
         avatar.availableCommands = lambda: {'move': Move}
@@ -180,6 +181,27 @@ class BotLineProtocolTest(TestCase):
 
         proto.lineReceived('move east-23 twice 3')
         avatar.execute.assert_called_once_with(Move, 'east-23', 'twice', 3)
+
+        self.assertEqual(proto.transport.value(),
+                    proto.event_transformer.transform(('ret', 'val'))+'\r\n',
+                    "Should send the result over the wire.")
+
+
+    def test_commandResultNull(self):
+        """
+        If the result of a command is None or '', don't send anything over
+        the wire.
+        """
+        avatar = MagicMock()
+        avatar.availableCommands = lambda: {'move': Move}
+        avatar.execute.return_value = None
+        
+        proto = BotLineProtocol(avatar)
+        proto.makeConnection(StringTransport())
+
+        proto.lineReceived('move east-23 twice 3')
+
+        self.assertEqual(proto.transport.value(), '')
 
 
 

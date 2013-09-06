@@ -94,7 +94,9 @@ class BotLineProtocol(LineOnlyReceiver):
             except:
                 return x
         args = map(maybeInt, parts[1:])
-        self.avatar.execute(cmd_cls, *args)
+        result = self.avatar.execute(cmd_cls, *args)
+        if result:
+            self.sendLine(self.event_transformer.transform(result))
 
 
 
