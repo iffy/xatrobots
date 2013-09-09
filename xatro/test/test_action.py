@@ -27,6 +27,10 @@ class MoveTest(TestCase):
         self.assertEqual(Move('foo', 'bar').emitters(), ['foo'])
 
 
+    def test_subject(self):
+        self.assertEqual(Move('foo', 'bar').subject(), 'foo')
+
+
     def test_execute(self):
         """
         Moving to a new location should:
@@ -206,6 +210,10 @@ class ChargeTest(TestCase):
         self.assertEqual(Charge('foo').emitters(), ['foo'])
 
 
+    def test_subject(self):
+        self.assertEqual(Charge('foo').subject(), 'foo')
+
+
     def test_charge(self):
         """
         Charging should add energy to the thing's energy pool and to the
@@ -280,6 +288,10 @@ class ShareEnergyTest(TestCase):
                          ['foo', 'bar'])
 
 
+    def test_subject(self):
+        self.assertEqual(ShareEnergy('foo', 'bar', 2).subject(), 'foo')
+
+
     def test_share(self):
         """
         Sharing energy should result in the energy being removed from the
@@ -332,6 +344,10 @@ class ConsumeEnergyTest(TestCase):
         self.assertEqual(ConsumeEnergy('foo', 2).emitters(), ['foo'])
 
 
+    def test_subject(self):
+        self.assertEqual(ConsumeEnergy('foo', 2).subject(), 'foo')
+
+
     def test_execute(self):
         """
         Consuming energy should simply destroy the energy.
@@ -378,6 +394,10 @@ class ShootTest(TestCase):
 
     def test_emitters(self):
         self.assertEqual(Shoot('foo', 'bar', 3).emitters(), ['foo', 'bar'])
+
+
+    def test_subject(self):
+        self.assertEqual(Shoot('foo', 'bar', 3).subject(), 'foo')
 
 
     def test_execute(self):
@@ -435,6 +455,10 @@ class RepairTest(TestCase):
         self.assertEqual(Repair('foo', 'bar', '3').emitters(), ['foo', 'bar'])
 
 
+    def test_subject(self):
+        self.assertEqual(Repair('foo', 'bar', 3).subject(), 'foo')
+
+
     def test_execute(self):
         """
         Repairing something should increas the number of hitpoints on that
@@ -477,6 +501,10 @@ class LookTest(TestCase):
         self.assertEqual(Look('foo').emitters(), ['foo'])
 
 
+    def test_subject(self):
+        self.assertEqual(Look('foo').subject(), 'foo')
+
+
     def test_inLocation(self):
         """
         Should list the things in my location
@@ -514,6 +542,10 @@ class MakeToolTest(TestCase):
     def test_emitters(self):
         self.assertEqual(MakeTool('me', 'ore', 'tool').emitters(),
                          ['me', 'ore'])
+
+
+    def test_subject(self):
+        self.assertEqual(MakeTool('foo', 'ore', 'tool').subject(), 'foo')
 
 
     def test_makeTool(self):
@@ -589,6 +621,10 @@ class OpenPortalTest(TestCase):
                          ['me', 'user'])
 
 
+    def test_subject(self):
+        self.assertEqual(OpenPortal('foo', 'bar', 'baz').subject(), 'foo')
+
+
     def test_open(self):
         """
         You can open a portal on from some ore.
@@ -630,6 +666,10 @@ class UsePortalTest(TestCase):
 
     def test_emitters(self):
         self.assertEqual(UsePortal('me', 'portal_id').emitters(), ['me'])
+
+
+    def test_subject(self):
+        self.assertEqual(UsePortal('foo', 'bar').subject(), 'foo')
 
 
     def usedPortal(self):
@@ -738,6 +778,10 @@ class ListSquaresTest(TestCase):
         self.assertEqual(ListSquares('me').emitters(), [])
 
 
+    def test_subject(self):
+        self.assertEqual(ListSquares('foo').subject(), 'foo')
+
+
     def test_execute(self):
         """
         Listing squares should return a list of all the things in the world
@@ -782,6 +826,10 @@ class AddLockTest(TestCase):
         self.assertEqual(AddLock('me', 'what').emitters(), ['me', 'what'])
 
 
+    def test_subject(self):
+        self.assertEqual(AddLock('foo', 'bar').subject(), 'foo')
+
+
     def test_execute(self):
         """
         Locking something should increase the number of 'locks' on the thing.
@@ -804,6 +852,10 @@ class BreakLockTest(TestCase):
 
     def test_emitters(self):
         self.assertEqual(BreakLock('me', 'what').emitters(), ['me', 'what'])
+
+
+    def test_subject(self):
+        self.assertEqual(BreakLock('foo', 'bar').subject(), 'foo')
 
 
     def test_execute(self):
@@ -839,6 +891,10 @@ class CreateTeamTest(TestCase):
         self.assertEqual(CreateTeam('me', 'teamA', 'password').emitters(), [])
 
 
+    def test_subject(self):
+        self.assertEqual(CreateTeam('foo', 'bar', 'pass').subject(), 'foo')
+
+
     def test_execute(self):
         """
         Should set the password for a team.
@@ -862,6 +918,10 @@ class JoinTeamTest(TestCase):
 
     def test_emitters(self):
         self.assertEqual(JoinTeam('me', 'teamA', 'password').emitters(), ['me'])
+
+
+    def test_subject(self):
+        self.assertEqual(JoinTeam('foo', 'bar', 'pass').subject(), 'foo')
 
 
     @defer.inlineCallbacks

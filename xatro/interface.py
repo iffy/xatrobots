@@ -20,6 +20,12 @@ class IAction(Interface):
         """
 
 
+    def subject():
+        """
+        Return the id of the thing doing the action.
+        """
+
+
 
 class IEngine(Interface):
 

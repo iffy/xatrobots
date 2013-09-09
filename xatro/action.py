@@ -30,6 +30,10 @@ class Move(object):
         return [self.thing]
 
 
+    def subject(self):
+        return self.thing
+
+
     def execute(self, world):
         thing = self.thing
         dst = self.dst
@@ -78,6 +82,10 @@ class Look(object):
 
     def emitters(self):
         return [self.thing]
+
+
+    def subject(self):
+        return self.thing
 
 
     def execute(self, world):
@@ -131,6 +139,10 @@ class Charge(object):
         return [self.thing]
 
 
+    def subject(self):
+        return self.thing
+
+
     def execute(self, world):
         thing_id = self.thing
 
@@ -181,6 +193,10 @@ class ShareEnergy(object):
         return [self.giver, self.receiver]
 
 
+    def subject(self):
+        return self.giver
+
+
     def execute(self, world):
         """
         """
@@ -217,6 +233,10 @@ class ConsumeEnergy(object):
         return [self.thing]
 
 
+    def subject(self):
+        return self.thing
+
+
     def execute(self, world):
         """
         Consume energy.
@@ -247,6 +267,10 @@ class Shoot(object):
 
     def emitters(self):
         return [self.shooter, self.target]
+
+
+    def subject(self):
+        return self.shooter
 
 
     def execute(self, world):
@@ -280,6 +304,10 @@ class Repair(object):
         return [self.repairman, self.target]
 
 
+    def subject(self):
+        return self.repairman
+
+
     def execute(self, world):
         """
         @raise Invulnerable: If the target can't be repaired.
@@ -307,6 +335,10 @@ class MakeTool(object):
 
     def emitters(self):
         return [self.thing, self.ore]
+
+
+    def subject(self):
+        return self.thing
 
 
     def execute(self, world):
@@ -348,6 +380,10 @@ class OpenPortal(object):
         return [self.thing, self.user]
 
 
+    def subject(self):
+        return self.thing
+
+
     def execute(self, world):
         """
         Open a portal for another bot.
@@ -383,6 +419,10 @@ class UsePortal(object):
 
     def emitters(self):
         return [self.thing]
+
+
+    def subject(self):
+        return self.thing
 
 
     def execute(self, world):
@@ -433,6 +473,10 @@ class ListSquares(object):
         return []
 
 
+    def subject(self):
+        return self.eyes
+
+
     def execute(self, world):
         """
         List the squares in the world.
@@ -473,6 +517,10 @@ class AddLock(object):
         return [self.doer, self.target]
 
 
+    def subject(self):
+        return self.doer
+
+
     def execute(self, world):
         target = world.get(self.target)
         world.setAttr(target['id'], 'locks', target.get('locks', 0) + 1)
@@ -494,6 +542,10 @@ class BreakLock(object):
 
     def emitters(self):
         return [self.doer, self.target]
+
+
+    def subject(self):
+        return self.doer
 
 
     def execute(self, world):
@@ -521,6 +573,10 @@ class CreateTeam(object):
         return []
 
 
+    def subject(self):
+        return self.creator
+
+
     def execute(self, world):
         return world.auth.createEntity(self.team_name, self.password)
 
@@ -542,6 +598,10 @@ class JoinTeam(object):
 
     def emitters(self):
         return [self.thing]
+
+
+    def subject(self):
+        return self.thing
 
 
     def execute(self, world):
