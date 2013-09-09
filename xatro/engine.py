@@ -1,8 +1,11 @@
+from twisted.internet import defer
+
 from zope.interface import implements
 
 from xatro.interface import IEngine
-from xatro.error import InvalidSolution
+from xatro.error import InvalidSolution, NotEnoughEnergy
 from xatro.work import WorkMaker
+from xatro.action import ConsumeEnergy
 
 
 
@@ -24,16 +27,42 @@ class XatroEngine(object):
     def execute(self, world, action):
         """
         """
-        self.engine.isAllowed(world, action)
+        try:
+            self.engine.isAllowed(world, action)
+        except Exception as e:
+            return defer.fail(e)
 
+        # check work
         work = self.engine.workRequirement(world, action)
         if work:
             # do they have a solution?
             solution = world.envelope(action).get('work_solution', None)
             if solution is None or not self.work_maker.isResult(work, solution):
                 # verify that the work is good
-                raise InvalidSolution(work)
+                return defer.fail(InvalidSolution(work))
         
-        self.engine.energyRequirement(world, action)
+        # check energy
+        energy = self.engine.energyRequirement(world, action)
+        if energy:
+            # do they have enough energy?
+            subject_id = action.subject()
+            subject = world.get(subject_id)
+            available_energies = subject.get('energy', [])
+            if len(available_energies) < energy:
+                return defer.fail(NotEnoughEnergy(energy))
 
-        return action.execute(world)
+        d = defer.maybeDeferred(action.execute, world)
+        
+        # if the operation succeeds, consume energy
+        if energy:
+            d.addCallback(self._consumeEnergyAndReturn, world, action.subject(),
+                          energy)
+        return d
+
+
+    def _consumeEnergyAndReturn(self, result, world, consumer, amount):
+        """
+        Consume some energy and then return the result.
+        """
+        ConsumeEnergy(consumer, amount).execute(world)
+        return result
