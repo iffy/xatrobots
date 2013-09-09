@@ -7,63 +7,48 @@
     box-sizing: border-box;
     font-family: monospace;
   }
-  .board {
-    position: relative;
-    margin: 1em;
+  @-webkit-keyframes lifesource {
+     0% { fill: #999; }
+     50% { fill: #f90; }
+     100% { fill: #999; }
   }
-  .square {
-    position: absolute;
-    width: 180px;
-    height: 180px;
-    background: #ddd;
-    padding: 1em;
+  .viewport {
   }
-  .square .thing {
-    border-radius: 2px;
-    width: 16px;
-    height: 16px;
-    margin: 2px;
-    display: inline-block;
-    text-align: center;
-    line-height: 16px;
+  svg {
+    background: #08c;
+  }
+  rect.square {
+    fill: #fff;
+  }
+  circle.bot {
+    fill: #000;
+  }
+  rect.pylon {
+    fill: #999;
   }
   .ore {
-    background: #000;
-  }
-  .pylon {
-    background: #fff;
+    fill: #000;
   }
   .lifesource {
-    background: #f90;
-  }
-  .bot {
-    background: #999;
-  }
-  .team1 {
-    border: 2px solid #f00;
-  }
-  .team2 {
-    border: 2px solid #00f;
-  }
-  .team3 {
-    border: 2px solid #0f0;
+    fill: #666;
+    -webkit-animation: lifesource 5s infinite;
   }
   </style>
 </head>
 <body ng-app="game">
   <div id="events"></div>
 
-  <div ng-controller="BoardCtrl">
-    <div class="board">
-      <div class="square" ng-repeat="square in data.object_list|filter:{object:'square'}" style="left: {{ 200 * square.coordinates[0] }}px; top: {{ 200 * square.coordinates[1] }}px;">
-        <div ng-repeat="pylon_id in square.contents.pylon" class="thing pylon">{{ data.objects[pylon_id].locks }}</div>
-        <div ng-repeat="lifesource_id in square.contents.lifesource" class="thing lifesource"></div>
-        <div ng-repeat="ore_id in square.contents.ore" class="thing ore"></div>
-        <div ng-repeat="id in square.contents.bot" class="thing bot team1"></div>
-      </div>
+  <div ng-controller="BoardCtrl" class="viewport">
+    <board state="data" width="800" height="500"></board>
+
+    <h2>Objects</h2>
+    <div ng-repeat="obj in data.object_list" style="margin-top: 1em;">
+      <div>{{ obj.id }}</div>
+      <div>{{ obj }}</div>
     </div>
   </div>
 
+  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
   </script>
@@ -71,82 +56,360 @@
 <script>
 var app = angular.module('game', []);
 
-app.factory('State', function($http, $rootScope, Events) {
+app.factory('State', function($http, $rootScope) {
   this.data = {
     objects: {},
     object_list: [],
+    kinds: {},
   };
 
-  // Get initial state
-  $http.get('./current_state').then(function(response) {
-    this.data.objects = response.data;
+  // Start the event feed
+  var source = new EventSource('./events');
+
+  // Look for the state changing
+  source.addEventListener('state', function(sse_message) {
+    var data = JSON.parse(sse_message.data);
+
+    // obliterate current state and replace it.
+    $rootScope.$apply(function() {
+      this.data.objects = {};
+      this.data.object_list = [];
+      this.data.kinds = {};
+      angular.extend(this.data.objects, data);
+    }.bind(this));
   }.bind(this));
 
-  // Get event feed going
-  this.eventReceived = function(ev) {
-    var handler = this['handle_' + ev[1]];
+  // Look for events
+  source.addEventListener('ev', function(sse_message) {
+    var data = JSON.parse(sse_message.data);
+    var handler = this['handle_'+data.ev];
     if (handler != undefined) {
-      handler = handler.bind(this);
-      return $rootScope.$apply(function() {
-        return handler(ev[0], ev[2]);
-      });
+      $rootScope.$apply(function() {
+        handler.apply(this, [data]);  
+      }.bind(this));
     }
-  }
-  Events.subscribe(this.eventReceived.bind(this));
-  Events.start();
+  }.bind(this));
 
   //---------------------------------------------------------------------------
   // handlers
   //---------------------------------------------------------------------------
-  this.handle_pylon_locks = function(pylon, number) {
-    this.data.objects[pylon.id].locks = number;
+  this.handle_created = function(ev) {
+    this.data.objects[ev.id] = {'id': ev.id};
   }
-  this.handle_hp_set = function(bot, hp) {
-    this.data.objects[bot.id].hp = hp;
+  this.handle_destroyed = function(ev) {
+    delete this.data.objects[ev.id];
   }
-  this.handle_hp = function(bot, amount) {
-    this.data.objects[bot.id].hp += amount;
+  this.handle_attrset = function(ev) {
+    this.data.objects[ev.id][ev.name] = ev.value;
   }
-  this.handle_e_change = function(bot, amount) {
-    this.data.objects[bot.id].energy += amount;
+  this.handle_attrdel = function(ev) {
+    delete this.data.objects[ev.id][ev.name];
   }
+  this.handle_itemadded = function(ev) {
+    var obj = this.data.objects[ev.id];
+    if (obj[ev.name] === undefined) {
+      obj[ev.name] = [];
+    }
+    obj[ev.name].push(ev.value);
+  }
+  this.handle_itemremoved = function(ev) {
+    var arr = this.data.objects[ev.id][ev.name];
+    var idx = arr.indexOf(ev.value);
+    arr.splice(idx, 1);
+  }
+  this.handle_action = function(ev) {
+    console.log(['action', ev]);
+  }
+
 
   // watch for changes in objects
   $rootScope.$watch(function() {
     return this.data.objects;
   }.bind(this), function(newval) {
     this.data.object_list = [];
-    angular.forEach(this.data.objects, function(val) {
-      this.data.object_list.push(val);
+    this.data.kinds = {};
+    var kinds = this.data.kinds;
+    angular.forEach(newval, function(item) {
+      this.data.object_list.push(item);
+      var kind = item.kind;
+      if (kinds[kind] === undefined) {
+        kinds[kind] = [];
+      }
+      kinds[kind].push(item);
     }.bind(this));
   }.bind(this), true);
-  return this;
-});
-
-app.factory('Events', function() {
-  this.subscribers = [];
-  this.subscribe = function(func) {
-    this.subscribers.push(func);
-  }
-  this.eventReceived = function(ev) {
-    console.log(ev);
-    angular.forEach(this.subscribers, function(subscriber) {
-      subscriber(ev);
-    })
-  }
-  this.start = function() {
-    var source = new EventSource('./events');
-    source.addEventListener('ev', function(sse_message) {
-      var data = JSON.parse(sse_message.data);
-      this.eventReceived(data);
-    }.bind(this));
-  }
   return this;
 });
 
 app.controller('BoardCtrl', function($scope, State) {
   $scope.data = State.data;
 });
+
+
+app.directive('board', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      state: '=',
+      width: '@',
+      height: '@'
+    },
+    link: function(scope, element, attrs) {
+      var vis_width = attrs.width;
+      var vis_height = attrs.height;
+      
+      var margin = 10;
+      var width = vis_width - 2*margin;
+      var height = vis_height - 2*margin;
+      var square_padding = 10;
+
+      var vis = d3.select(element[0])
+        .append('svg')
+          .attr('width', vis_width)
+          .attr('height', vis_height);
+
+      var content = vis.append('g')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('transform', 'translate(' + margin + ',' + margin + ')');
+
+      // where the game board is
+      var board = content.append('g');
+      var board_w = width;
+      var board_h = height;
+
+      var g_ore = content.append('g');
+      var g_lifesource = content.append('g');
+      var g_pylons = content.append('g');
+      var g_bots = content.append('g');
+
+      scope.$watch('state', function(newval, oldval) {
+        // ignore non-changes
+        if (newval === oldval) {
+          return;
+        }
+
+        var kinds = newval.kinds;
+
+        var square_dim;
+        var square_space;
+        var square_padded_dim;
+
+        // lay out the board
+        if (!kinds['square'].length) {
+          return;
+        }
+        var first = kinds['square'][0];
+        var minx = first.coordinates[0],
+            miny = first.coordinates[1],
+            maxx = first.coordinates[0],
+            maxy = first.coordinates[1];
+        kinds['square'].forEach(function(square) {
+          minx = square.coordinates[0] < minx ? square.coordinates[0] : minx;
+          maxx = square.coordinates[0] > maxx ? square.coordinates[0] : maxx;
+          miny = square.coordinates[1] < miny ? square.coordinates[1] : miny;
+          maxy = square.coordinates[1] > maxy ? square.coordinates[1] : maxy;
+        });
+
+        // how many squares?
+        var square_count_x = maxx - minx + 1;
+        var square_count_y = maxy - miny + 1;
+
+        // how many pixels per square horizontally and vertically?
+        var px_x = board_w / square_count_x;
+        var px_y = board_h / square_count_y;
+
+        // squares will be this dimension
+        square_space = d3.min([px_x, px_y]);
+        square_dim = Math.ceil(square_space * 0.9);
+        square_padded_dim = square_dim - 2*square_padding;
+
+        // draw the squares
+        var rect = board.selectAll('rect')
+          .data(kinds['square'], function(d) { return d.id });
+
+        rect.enter().append('rect')
+          .attr('x', function(d) {
+            return d.coordinates[0] * square_space;
+          })
+          .attr('y', function(d) {
+            return d.coordinates[1] * square_space;
+          })
+          .attr('width', square_dim)
+          .attr('height', square_dim)
+          .attr('class', 'square');
+
+
+        //---------------------------------------------------------------------
+        // bots
+        //---------------------------------------------------------------------
+        if (kinds['bot'] !== undefined) {
+          var bots_on_squares = [];
+          kinds['bot'].forEach(function(bot) {
+            if (bot.location === undefined || bot.location === null) {
+              return;
+            }
+            var square = newval.objects[bot.location];
+            var coord = locWithinSquare(bot.id, square, square_space,
+                                        square_padded_dim, square_padding)
+            bots_on_squares.push({
+              'sq_x': coord[0],
+              'sq_y': coord[1],
+              'bot': bot,
+            });
+          });
+          var bots = g_bots.selectAll('circle')
+            .data(bots_on_squares, function(d) { return d.bot.id });
+
+          bots.enter().append('circle')
+            .attr('cx', function(d) {
+              return d.sq_x;
+            })
+            .attr('cy', function(d) {
+              return d.sq_y;
+            })
+            .attr('r', 4)
+            .attr('class', 'bot');
+
+          bots.transition()
+            .duration(200)
+            .attr('cx', function(d) {
+              return d.sq_x;
+            })
+            .attr('cy', function(d) {
+              return d.sq_y;
+            });
+
+          bots.exit().remove();
+        }
+
+        //---------------------------------------------------------------------
+        // pylons
+        //---------------------------------------------------------------------
+        if (kinds['pylon'] !== undefined) {
+          var pylons = [];
+          kinds['pylon'].forEach(function(pylon) {
+            if (pylon.location === undefined || pylon.location === null) {
+              return;
+            }
+            var square = newval.objects[pylon.location];
+            var coord = locWithinSquare(pylon.id, square, square_space,
+                                        square_padded_dim, square_padding)
+            pylons.push({
+              'sq_x': coord[0],
+              'sq_y': coord[1],
+              'pylon': pylon,
+            });
+          });
+
+          var pylon_elems = g_pylons.selectAll('rect')
+            .data(pylons, function(d) { return d.pylon.id; });
+
+          pylon_elems.enter().append('rect')
+            .attr('x', function(d) {
+              return d.sq_x;
+            })
+            .attr('y', function(d) {
+              return d.sq_y;
+            })
+            .attr('width', 8)
+            .attr('height', 8)
+            .attr('rx', 2)
+            .attr('ry', 2)
+            .attr('class', 'pylon');
+          pylon_elems.exit().remove();
+        }
+
+        //---------------------------------------------------------------------
+        // ore
+        //---------------------------------------------------------------------
+        if (kinds['ore'] !== undefined) {
+          var ores = [];
+          kinds['ore'].forEach(function(ore) {
+            if (ore.location === undefined || ore.location === null) {
+              return;
+            }
+            var square = newval.objects[ore.location];
+            var coord = locWithinSquare(ore.id, square, square_space,
+                                        square_padded_dim, square_padding)
+            ores.push({
+              'sq_x': coord[0],
+              'sq_y': coord[1],
+              'ore': ore,
+            });
+          });
+
+          var ore_elems = g_ore.selectAll('rect')
+            .data(ores, function(d) { return d.ore.id; });
+
+          ore_elems.enter().append('rect')
+            .attr('x', function(d) {
+              return d.sq_x;
+            })
+            .attr('y', function(d) {
+              return d.sq_y;
+            })
+            .attr('width', 5)
+            .attr('height', 5)
+            .attr('rx', 2)
+            .attr('ry', 2)
+            .attr('class', 'ore');
+          ore_elems.exit().remove();
+        }
+
+        //---------------------------------------------------------------------
+        // lifesource
+        //---------------------------------------------------------------------
+        if (kinds['lifesource'] !== undefined) {
+          var lifesources = [];
+          kinds['lifesource'].forEach(function(lifesource) {
+            if (lifesource.location === undefined || lifesource.location === null) {
+              return;
+            }
+            var square = newval.objects[lifesource.location];
+            var coord = locWithinSquare(lifesource.id, square, square_space,
+                                        square_padded_dim, square_padding)
+            lifesources.push({
+              'sq_x': coord[0],
+              'sq_y': coord[1],
+              'lifesource': lifesource,
+            });
+          });
+
+          var lifesource_elems = g_lifesource.selectAll('rect')
+            .data(lifesources, function(d) { return d.lifesource.id; });
+
+          lifesource_elems.enter().append('rect')
+            .attr('x', function(d) {
+              return d.sq_x;
+            })
+            .attr('y', function(d) {
+              return d.sq_y;
+            })
+            .attr('width', 5)
+            .attr('height', 5)
+            .attr('rx', 2)
+            .attr('ry', 2)
+            .attr('class', 'lifesource');
+          lifesource_elems.exit().remove();
+        }
+        
+      }, true);
+      
+      function locWithinSquare(id, square, square_space, padded_dim, padding) {
+        var int_id = Math.abs(parseInt(id.replace(/-/g, ''), 16));
+        var ox = (int_id % 20) / 20;
+        var oy = (int_id % 25) / 25;
+        var offsetx = Math.floor(padded_dim * ox) + padding;
+        var offsety = Math.floor(padded_dim * oy) + padding;
+        return [
+          square.coordinates[0] * square_space + offsetx,
+          square.coordinates[1] * square_space + offsety,
+        ];
+      }
+    }
+  }
+})
 </script>
 </body>
 </html>

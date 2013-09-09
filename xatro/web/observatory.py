@@ -54,15 +54,6 @@ class GameObserver(object):
         return File(self.static_root.child('game.html').path)
 
 
-    @app.route('/current_state')
-    def current_state(self, request):
-        """
-        Return the current state of the game.
-        """
-        request.setHeader('Content-Type', 'application/json')
-        return json.dumps(self._state.state)
-
-
     @app.route('/events')
     def events(self, request):
         """
@@ -72,7 +63,8 @@ class GameObserver(object):
         request.notifyFinish().addCallback(self._removeRequest)
 
         request.setHeader('Content-Type', 'text/event-stream')
-        request.write(self.sse('a', 'hey'))
+        # send the current state of the game.
+        request.write(self.sse('state', json.dumps(self._state.state)))
         return defer.Deferred()
 
 

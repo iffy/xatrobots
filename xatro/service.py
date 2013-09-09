@@ -32,6 +32,30 @@ class Options(usage.Options):
 
 
 
+def makeBoard(world, options):
+    """
+    Make the board for the world.
+    """
+    from xatro.action import Move
+    import random
+
+    # XXX hard-coded 4 x 4 for now
+    for i in xrange(4):
+        for j in xrange(4):
+            sq = world.create('square')['id']
+            world.setAttr(sq, 'coordinates', (i, j))
+            pylon = world.create('pylon')['id']
+            world.setAttr(pylon, 'locks', 3)
+            Move(pylon, sq).execute(world)
+            for o in xrange(random.randint(1, 5)):
+                ore = world.create('ore')['id']
+                Move(ore, sq).execute(world)
+
+            ls = world.create('lifesource')['id']
+            Move(ls, sq).execute(world)
+
+
+
 def makeService(options):
     from twisted.internet import reactor
 
@@ -56,6 +80,9 @@ def makeService(options):
 
     # world
     world = World(web_app.eventReceived, engine, auth)
+
+    # make the board
+    makeBoard(world, options)
 
     # line protocol
     f = BotFactory(world, {
