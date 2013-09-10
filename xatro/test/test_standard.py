@@ -5,7 +5,7 @@ from zope.interface.verify import verifyObject
 from mock import MagicMock
 
 from xatro import action
-from xatro.auth import FileStoredPasswords
+from xatro.auth import MemoryStoredPasswords
 from xatro.world import World
 from xatro.error import NotAllowed
 from xatro.engine import XatroEngine
@@ -21,7 +21,7 @@ class StandardRulesTest(TestCase):
         """
         Get a fresh world and set of rules.
         """
-        auth = FileStoredPasswords(self.mktemp())
+        auth = MemoryStoredPasswords()
         rules = StandardRules()
         engine = XatroEngine(rules)
         world = World(MagicMock(), engine, auth)

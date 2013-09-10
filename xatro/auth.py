@@ -61,3 +61,52 @@ class FileStoredPasswords(object):
         if matches:
             return name
         raise BadPassword('Bad password: %r' % (name,))
+
+
+
+class MemoryStoredPasswords(object):
+    """
+    I authenticate passwords from data stored in memory.
+
+    XXX FileStoredPasswords and I should be refactored to not have so much
+    duplicate code.
+    """
+
+
+    def __init__(self):
+        self._data = {}
+
+
+    def _get(self, name):
+        return self._data[name]
+    
+
+    def _set(self, name, pw_hash):
+        self._data[name] = pw_hash
+
+
+    def createEntity(self, name, password):
+        return computeKey(password).addCallback(self._gotHash, name)
+
+
+    def _gotHash(self, pw_hash, name):
+        self._set(name, pw_hash)
+        return name
+
+
+    def checkPassword(self, name, password):
+        try:
+            pw_hash = self._get(name)
+        except KeyError:
+            return defer.fail(BadPassword('Bad password: %r' % (name,)))
+        d = checkPassword(pw_hash, password)
+        d.addCallback(self._passwordMatches, name)
+        return d
+
+
+    def _passwordMatches(self, matches, name):
+        if matches:
+            return name
+        raise BadPassword('Bad password: %r' % (name,))
+
+
