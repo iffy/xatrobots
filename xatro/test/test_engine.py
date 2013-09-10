@@ -11,9 +11,6 @@ from xatro.interface import IEngine
 from xatro.engine import XatroEngine
 from xatro.action import Charge
 
-# workRequirement(action)
-# energyRequirement(action)
-# isAllowed(action)
 
 
 class XatroEngineTest(TestCase):
@@ -223,6 +220,16 @@ class XatroEngineTest(TestCase):
         self.assertFailure(e.execute(world, action), NotAllowed)
         self.assertEqual(len(actor['energy']), 2, "Should not have consumed "
                          "the energy")
+
+
+    def test_worldEventReceived(self):
+        """
+        Received events are just sent to the wrapped engine.
+        """
+        wrapped = MagicMock()
+        e = XatroEngine(wrapped)
+        e.worldEventReceived('foo', 'bar')
+        wrapped.worldEventReceived.assert_called_once_with('foo', 'bar')
 
 
 

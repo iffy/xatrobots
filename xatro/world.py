@@ -176,6 +176,11 @@ class World(object):
             # update state
             self._callOnce(called_list, self._state.eventReceived, event)
 
+            # inform game engine
+            if self.engine:
+                self._callOnce(called_list,
+                               self.engine.worldEventReceived, self, event)
+
             try:
                 self._callOnce(called_list, self.event_receiver, event)
             except:

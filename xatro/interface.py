@@ -30,6 +30,12 @@ class IAction(Interface):
 class IEngine(Interface):
 
 
+    def worldEventReceived(world, event):
+        """
+        An event happened.
+        """
+
+
     def execute(world, action):
         """
         Determine if the action is okay, then do it if it is.  Return the
@@ -39,6 +45,12 @@ class IEngine(Interface):
 
 
 class IXatroEngine(Interface):
+
+
+    def worldEventReceived(world, event):
+        """
+        An event happened.
+        """
 
 
     def workRequirement(world, action):

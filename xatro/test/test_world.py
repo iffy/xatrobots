@@ -31,6 +31,17 @@ class WorldTest(TestCase):
         self.assertEqual(world.auth, 'auth')
 
 
+    def test_emit_toEngine(self):
+        """
+        All emissions are sent to the engine.
+        """
+        ev = MagicMock()
+        engine = MagicMock()
+        world = World(ev, engine)
+        world.emit('foo', 'object_id')
+        engine.worldEventReceived.assert_called_once_with(world, 'foo')
+
+
     def test_execute(self):
         """
         Asking the world to execute a command will ask the (game) engine to

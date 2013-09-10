@@ -66,3 +66,7 @@ class XatroEngine(object):
         """
         ConsumeEnergy(consumer, amount).execute(world)
         return result
+
+
+    def worldEventReceived(self, world, event):
+        self.engine.worldEventReceived(world, event)
