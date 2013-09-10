@@ -6,6 +6,7 @@ import json
 from xatro.transformer import DictTransformer
 from xatro.avatar import Avatar
 from xatro import action
+from xatro.error import NotAllowed
 
 
 
@@ -14,6 +15,7 @@ class Identify(amp.Command):
     arguments = [
         ('id', amp.String()),
     ]
+    requiresAnswer = False
 
 
 
@@ -22,6 +24,7 @@ class ReceiveEvent(amp.Command):
     arguments = [
         ('ev', amp.String()),
     ]
+    requiresAnswer = False
 
 
 class WorldCommand(amp.Command):
@@ -34,6 +37,9 @@ class WorldCommand(amp.Command):
     response = [
         ('data', amp.String()),
     ]
+    errors = {
+        NotAllowed: 'NOT_ALLOWED',
+    }
 
 
 
@@ -86,11 +92,16 @@ class AvatarProtocol(amp.AMP):
         # XXX sending json over AMP feels wrong :(
 
 
+    @WorldCommand.responder
     def handleWorldCommand(self, name, args, work=None):
         cls = self.commands[name]
         d = defer.maybeDeferred(self.avatar.execute, cls, *args)
         d.addCallback(lambda r: {'data': json.dumps(r)})
         return d
+
+
+    def connectionLost(self, reason):
+        self.avatar.quit()
 
 
 

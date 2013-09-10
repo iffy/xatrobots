@@ -7,10 +7,11 @@ from twisted.web.server import Site
 
 from xatro.world import World
 from xatro import action
-from xatro.auth import FileStoredPasswords
+from xatro.auth import MemoryStoredPasswords
 from xatro.server.lineproto import BotFactory
 from xatro.server import amp
 from xatro.engine import XatroEngine
+from xatro.standard import StandardRules
 from xatro.web.observatory import GameObserver
 
 
@@ -66,12 +67,8 @@ def makeService(options):
 
     # rules/game engine
     from mock import MagicMock
-    rules = MagicMock()
-    rules.workRequirement.return_value = None
-    rules.energyRequirement.return_value = 0
-    rules.isAllowed.return_value = None
 
-    engine = XatroEngine(rules)
+    engine = XatroEngine(StandardRules())
     
     # web
     web_app = GameObserver(FilePath(options['web-static-path']))
@@ -81,7 +78,8 @@ def makeService(options):
     web_service.setName('Web Observer Service')
 
     # passwords
-    auth = FileStoredPasswords(options['password-file'])
+    #auth = FileStoredPasswords(options['password-file'])
+    auth = MemoryStoredPasswords()
 
     # world
     world = World(web_app.eventReceived, engine, auth)

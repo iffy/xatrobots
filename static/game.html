@@ -39,7 +39,7 @@
   <div id="events"></div>
 
   <div ng-controller="BoardCtrl" class="viewport">
-    <board state="data" width="800" height="500"></board>
+    <board state="data" width="800" height="800"></board>
   </div>
 
   <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
@@ -76,6 +76,7 @@ app.factory('State', function($http, $rootScope) {
   // Look for events
   source.addEventListener('ev', function(sse_message) {
     var data = JSON.parse(sse_message.data);
+    console.log(data);
     var handler = this['handle_'+data.ev];
     if (handler != undefined) {
       $rootScope.$apply(function() {
@@ -91,6 +92,7 @@ app.factory('State', function($http, $rootScope) {
     this.data.objects[ev.id] = {'id': ev.id};
   }
   this.handle_destroyed = function(ev) {
+    console.log('destroyed');
     delete this.data.objects[ev.id];
   }
   this.handle_attrset = function(ev) {
@@ -107,9 +109,11 @@ app.factory('State', function($http, $rootScope) {
     obj[ev.name].push(ev.value);
   }
   this.handle_itemremoved = function(ev) {
+    console.log(ev);
     var arr = this.data.objects[ev.id][ev.name];
     var idx = arr.indexOf(ev.value);
     arr.splice(idx, 1);
+    console.log(arr);
   }
   this.handle_action = function(ev) {
     console.log(['action', ev]);
@@ -237,6 +241,9 @@ app.directive('board', function() {
         //---------------------------------------------------------------------
         // bots
         //---------------------------------------------------------------------
+        if (kinds['bot'] === undefined) {
+          kinds['bot'] = [];
+        }
         if (kinds['bot'] !== undefined) {
           var bots_on_squares = [];
           kinds['bot'].forEach(function(bot) {
