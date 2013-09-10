@@ -111,6 +111,12 @@ class StandardRules(object):
 
     repair_energy_requirements = shoot_energy_requirements.copy()
 
+    bot_starting_hp = 10
+    lifesource_starting_hp = 100
+
+    pylon_locks_after_capture = 3
+    winner = None
+
     ev_router = Router()
     act_router = Router()
     isAllowedRouter = Router()
@@ -119,6 +125,7 @@ class StandardRules(object):
     def __init__(self):
         self.bot_teams = {}
         self.bots_per_team_on_squares = defaultdict(lambda: set())
+        self._pylons = {}
 
 
     def worldEventReceived(self, world, event):
@@ -136,6 +143,7 @@ class StandardRules(object):
         except KeyError:
             pass
 
+
     @ev_router.handle(AttrSet)
     def _whenAttrSet(self, world, event):
         obj = world.get(event.id)
@@ -149,7 +157,29 @@ class StandardRules(object):
                     self.bots_per_team_on_squares[team].remove(event.id)
                 else:
                     # sending to a square
-                    self.bots_per_team_on_squares[team].add(event.id)
+                    team_on_squares = self.bots_per_team_on_squares[team]
+                    if event.id not in team_on_squares:
+                        # first time landing
+                        world.setAttr(event.id, 'hp', self.bot_starting_hp)
+                    team_on_squares.add(event.id)
+        elif obj['kind'] == 'lifesource':
+            if event.name == 'kind':
+                # ore just became lifesource
+                world.setAttr(event.id, 'hp', self.lifesource_starting_hp)
+        elif obj['kind'] == 'pylon':
+            if event.name == 'kind':
+                # pylon created
+                self._pylons[obj['id']] = None
+            elif event.name == 'team':
+                # pylon was captured
+                self._pylons[obj['id']] = event.value
+
+            teams = set(self._pylons.values())
+            if len(teams) == 1 and teams != set([None]):
+                # we have a winner
+                self.winner = list(teams)[0]
+
+
 
     @ev_router.handle(Destroyed)
     def _whenDestroyed(self, world, event):
@@ -157,6 +187,16 @@ class StandardRules(object):
             # indicate that this bot is no longer on the board
             team = self.bot_teams.pop(event.id)
             self.bots_per_team_on_squares[team].remove(event.id)
+
+
+    @act_router.handle(act.BreakLock)
+    def _whenLockIsBroken(self, world, action):
+        pylon = world.get(action.target)
+        if pylon.get('locks', 0) <= 0:
+            # capture pylon
+            bot = world.get(action.subject())
+            world.setAttr(action.target, 'team', bot['team'])
+            world.setAttr(action.target, 'locks', self.pylon_locks_after_capture)
 
 
     def isAllowed(self, world, action):

@@ -5,6 +5,7 @@ from zope.interface.verify import verifyObject
 from mock import MagicMock
 
 from xatro import action
+from xatro.event import ActionPerformed
 from xatro.auth import MemoryStoredPasswords
 from xatro.world import World
 from xatro.error import NotAllowed
@@ -641,11 +642,99 @@ class StandardRulesTest(TestCase):
                           world, action.BreakLock(bot, ore))
 
 
+    @defer.inlineCallbacks
+    def test_botIsGivenHPWhenItLands(self):
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        world.setAttr(square, 'coordinates', (0, 0))
+        bot = world.create('bot')
+        bot_id = bot['id']
+
+        yield world.execute(action.CreateTeam(bot_id, 'bar', 'password'))
+        yield world.execute(action.JoinTeam(bot_id, 'bar', 'password'))
+
+        world.execute(action.Move(bot_id, square))
+        self.assertEqual(bot['hp'], rules.bot_starting_hp, "When a bot lands"
+                         " the bot should be given hp")
+
+        # moving to a new square won't increase health
+        world.setAttr(bot_id, 'hp', rules.bot_starting_hp-2)
+        square2 = world.create('square')['id']
+        world.setAttr(square2, 'coordinates', (0, 1))
+        world.execute(action.Move(bot_id, square2))
+
+        self.assertEqual(bot['hp'], rules.bot_starting_hp-2,
+                         "Moving to a new square should not restore health")
 
 
+    def test_lifeSourceIsGivenHPWhenCreated(self):
+        """
+        A lifesource is given hp when it's created.
+        """
+        world, rules = self.worldAndRules()
+
+        ore = world.create('ore')
+        ore_id = ore['id']
+        world.setAttr(ore_id, 'kind', 'lifesource')
+
+        self.assertEqual(ore['hp'], rules.lifesource_starting_hp)
 
 
+    def test_pylonCaptured(self):
+        """
+        Pylons are given a certain number of locks when captured.  Also, the
+        team is recorded as owning the pylon and the game may be over if all
+        the pylons are captured.
+        """
+        world, rules = self.worldAndRules()
 
+        # make a pylon with 1 lock
+        pylon = world.create('pylon')
+        pylon_id = pylon['id']
+        world.setAttr(pylon_id, 'locks', 0)
+
+        # make bot
+        bot = world.create('bot')['id']
+        world.setAttr(bot, 'team', 'foo')
+
+        # break the lock
+        rules.worldEventReceived(world,
+            ActionPerformed(action.BreakLock(bot, pylon_id)))
+        self.assertEqual(pylon['team'], 'foo', "Should set the team that "
+                         "owns the pylon")
+        self.assertEqual(pylon['locks'], rules.pylon_locks_after_capture,
+                         "Should put several locks on the pylon")
+
+        self.assertEqual(rules.winner, 'foo')
+
+
+    def test_mustCaptureAllThePylonsToWin(self):
+        """
+        The game isn't won until all the pylons are captured.
+        """
+        world, rules = self.worldAndRules()
+
+        # make a pylon with 1 lock
+        p1 = world.create('pylon')['id']
+        p2 = world.create('pylon')['id']
+        p3 = world.create('pylon')['id']
+
+        # capture pylon 1
+        world.setAttr(p1, 'team', 'foo')
+        self.assertEqual(rules.winner, None)
+
+        # losepylon 2
+        world.setAttr(p2, 'team', 'foo')
+        world.setAttr(p2, 'team', 'bar')
+
+        # capture pylon 3
+        world.setAttr(p3, 'team', 'foo')
+        self.assertEqual(rules.winner, None)
+
+        # capture pylon 2
+        world.setAttr(p2, 'team', 'foo')
+        self.assertEqual(rules.winner, 'foo')
 
 
 
