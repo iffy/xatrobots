@@ -9,6 +9,7 @@ from xatro.world import World
 from xatro import action
 from xatro.auth import FileStoredPasswords
 from xatro.server.lineproto import BotFactory
+from xatro.server import amp
 from xatro.engine import XatroEngine
 from xatro.web.observatory import GameObserver
 
@@ -21,6 +22,10 @@ class Options(usage.Options):
     optParameters = [
         ("line-proto-endpoint", "l", "tcp:7601",
          "string endpoint description to listen for line receiving protocol"),
+
+        ("amp-proto-endpoint", "a", "tcp:7602",
+         "string endpoing description to listen for AMP connections on"),
+
         ("web-endpoint", "w", "tcp:7600",
          "string endpoint web interface will listen on"),
         ("web-static-path", None, "static",
@@ -84,6 +89,13 @@ def makeService(options):
     # make the board
     makeBoard(world, options)
 
+    # AMP
+    f = amp.AvatarFactory(world)
+    endpoint = endpoints.serverFromString(reactor, options['amp-proto-endpoint'])
+    amp_service = internet.StreamServerEndpointService(endpoint, f)
+    amp_service.setName('AMP Bot Service')
+
+
     # line protocol
     f = BotFactory(world, {
         'move': action.Move,
@@ -107,5 +119,8 @@ def makeService(options):
     ms = service.MultiService()
     line_service.setServiceParent(ms)
     web_service.setServiceParent(ms)
+    amp_service.setServiceParent(ms)
 
     return ms
+
+

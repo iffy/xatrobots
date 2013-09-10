@@ -40,12 +40,6 @@
 
   <div ng-controller="BoardCtrl" class="viewport">
     <board state="data" width="800" height="500"></board>
-
-    <h2>Objects</h2>
-    <div ng-repeat="obj in data.object_list" style="margin-top: 1em;">
-      <div>{{ obj.id }}</div>
-      <div>{{ obj }}</div>
-    </div>
   </div>
 
   <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
