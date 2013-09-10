@@ -52,6 +52,10 @@ class Move(object):
             world.unsubscribeFrom(old_location_id, world.receiverFor(thing))
             world.unsubscribeFrom(thing, world.receiverFor(old_location_id))
 
+            d = world.envelope(thing).get('_onDestroy')
+            if d:
+                d.cancel()
+
         # tell the thing where it is
         world.setAttr(thing, 'location', dst)
 
@@ -65,6 +69,17 @@ class Move(object):
 
             # location should emit what it receives
             world.receiveFor(dst, world.emitterFor(dst))
+
+            # wait for it to be destroyed
+            d = world.onEvent(thing, Destroyed(thing))
+            d.addCallback(self._remove, world, thing, dst)
+            d.addErrback(_ignoreCancellation)
+            world.envelope(thing)['_onDestroy'] = d
+
+
+    def _remove(self, ev, world, thing, room):
+        world.removeItem(room, 'contents', thing)
+
 
 
 

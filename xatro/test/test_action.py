@@ -198,6 +198,42 @@ class MoveTest(TestCase):
         self.assertEqual(c2, ['foo'])
 
 
+    def test_thingGetsDestroyed(self):
+        """
+        If something in a room is destroyed, it should be removed from the
+        contents.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+        room = world.create('room')
+
+        Move(thing['id'], room['id']).execute(world)
+        world.destroy(thing['id'])
+
+        self.assertEqual(room['contents'], [], "Should not have anything in it")
+
+
+    def test_thingGetsDestroyedInSecondRoom(self):
+        """
+        If something in a room is destroyed after it has been in another room,
+        it shouldn't cause errors.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+        room = world.create('room')
+        room2 = world.create('room')
+
+        Move(thing['id'], room['id']).execute(world)
+        Move(thing['id'], room2['id']).execute(world)
+
+        world.destroy(thing['id'])
+
+        self.assertEqual(room['contents'], [], "Should not have anything in it")
+        self.assertEqual(room2['contents'], [], "Should not have anything in "
+                        " it")
+
+
+
 
 class ChargeTest(TestCase):
 
