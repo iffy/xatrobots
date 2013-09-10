@@ -200,6 +200,8 @@ class StandardRules(object):
 
 
     def isAllowed(self, world, action):
+        if self.winner:
+            raise NotAllowed("Game over.  Team %s won" % (self.winner,))
         obj = world.get(action.subject())
         kind = obj.get('kind', None)
         if kind != 'bot':
