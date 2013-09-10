@@ -445,6 +445,73 @@ class StandardRulesTest(TestCase):
                           action.MakeTool(bot, ore, 'cannon'))
 
 
+    @defer.inlineCallbacks
+    def test_Charge_once(self):
+        """
+        You may only charge to create one energy at a time.
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot = world.create('bot')['id']
+        action.Move(bot, square).execute(world)
+
+        # charge once
+        yield world.execute(action.Charge(bot))
+
+        self.assertFailure(world.execute(action.Charge(bot)), NotAllowed)
+
+
+    def test_ShareEnergy(self):
+        """
+        You can share energy with another bot.
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot1 = world.create('bot')['id']
+        bot2 = world.create('bot')['id']
+        action.Move(bot1, square).execute(world)
+        action.Move(bot2, square).execute(world)
+
+        rules.isAllowed(world, action.ShareEnergy(bot1, bot2, 2))
+
+
+    def test_ShareEnergy_sameSquare(self):
+        """
+        You can only share energy with a bot on the same square
+        """
+        world, rules = self.worldAndRules()
+
+        square1 = world.create('square')['id']
+        bot1 = world.create('bot')['id']
+        action.Move(bot1, square1).execute(world)
+
+        square2 = world.create('square')['id']
+        bot2 = world.create('bot')['id']
+        action.Move(bot2, square2).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed, world,
+                          action.ShareEnergy(bot1, bot2, 2))
+
+
+    def test_ShareEnergy_bot(self):
+        """
+        You can only share energy with another bot.
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot1 = world.create('bot')['id']
+        ore = world.create('ore')['id']
+        action.Move(bot1, square).execute(world)
+        action.Move(ore, square).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed, world,
+                          action.ShareEnergy(bot1, ore, 2))
+
+
+
     def test_workRequirement(self):
         self.fail('write me')
 

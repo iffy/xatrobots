@@ -66,17 +66,28 @@ def requireVulnerable(target_attr):
             obj = world.get(getattr(action, target_attr))
             if not obj.get('hp'):
                 raise NotAllowed("The target isn't a vulnerable thing")
+            return func(instance, world, action)
         return wrapper
     return deco
+
+
+def requireKind(attr_name, required_kind):
+    def deco(func):
+        @wraps(func)
+        def wrapper(instance, world, action):
+            obj = world.get(getattr(action, attr_name))
+            if obj.get('kind') != required_kind:
+                raise NotAllowed("You can't do that with a %s" % (
+                                 obj.get('kind'),))
+            return func(instance, world, action)
+        return wrapper
+    return deco    
 
 
 
 class StandardRules(object):
     """
     I am the standard set of rules for a xatrobots game.
-
-    @ivar on_square_actions: List of action classes that can only be done when
-        on a square.
     """
 
     implements(IXatroEngine)
@@ -99,24 +110,6 @@ class StandardRules(object):
     }
 
     repair_energy_requirements = shoot_energy_requirements.copy()
-
-    on_square_actions = [
-        act.Charge,
-        act.ShareEnergy,
-        act.ConsumeEnergy,
-        act.Shoot,
-        act.Repair,
-        act.MakeTool,
-        act.OpenPortal,
-        act.AddLock,
-        act.BreakLock,
-    ]
-
-    off_square_actions = [
-        act.UsePortal,
-        act.JoinTeam,
-        act.CreateTeam,
-    ]
 
     ev_router = Router()
     act_router = Router()
@@ -178,8 +171,7 @@ class StandardRules(object):
             pass
 
 
-    @isAllowedRouter.handle(act.Charge)
-    @isAllowedRouter.handle(act.ShareEnergy)
+    
     @isAllowedRouter.handle(act.ConsumeEnergy)
     @isAllowedRouter.handle(act.OpenPortal)
     @isAllowedRouter.handle(act.AddLock)
@@ -194,6 +186,22 @@ class StandardRules(object):
     @requireOnDeck
     def isAllowed_offSquare(self, world, action):
         pass
+
+
+    @isAllowedRouter.handle(act.ShareEnergy)
+    @requireSquare
+    @requireKind('receiver', 'bot')
+    @requireSameSquare('giver', 'receiver')
+    def isAllowed_ShareEnergy(self, world, action):
+        pass
+
+    @isAllowedRouter.handle(act.Charge)
+    @requireSquare
+    def isAllowed_Charge(self, world, action):
+        obj = world.get(action.thing)
+        if obj.get('created_energy', 0):
+            raise NotAllowed("You must wait until the last energy you created"
+                             " is consumed or wasted")
 
 
     @isAllowedRouter.handle(act.Shoot)
@@ -216,11 +224,10 @@ class StandardRules(object):
 
     @isAllowedRouter.handle(act.MakeTool)
     @requireSquare
+    @requireKind('ore', 'ore')
     @requireSameSquare('thing', 'ore')
     def isAllowed_MakeTool(self, world, action):
-        ore = world.get(action.ore)
-        if ore.get('kind') != 'ore':
-            raise NotAllowed("You may only make tools out of ore")
+        pass
 
 
     @isAllowedRouter.handle(act.Move)
@@ -247,6 +254,7 @@ class StandardRules(object):
 
     def energyRequirement(self, world, action):
         """
+        Get the integer amount of energy required to do an action.
         """
         if isinstance(action, act.Shoot):
             return self.shoot_energy_requirements[action.damage]
@@ -258,4 +266,5 @@ class StandardRules(object):
     def workRequirement(self, world, action):
         """
         """
+        # XXX nothing requires work right now
         pass
