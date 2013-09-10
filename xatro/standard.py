@@ -248,12 +248,25 @@ class StandardRules(object):
     def isAllowed_Move(self, world, action):
         obj = world.get(action.thing)
 
-        if not obj.get('team'):
-            raise NotAllowed("You must be part of a team before "
-                             "landing")
-        if self.bots_per_team_on_squares[obj.get('team', None)]:
-            raise NotAllowed("Only the first bot can land without "
-                             "a portal")
+        location = obj.get('location')
+        if location:
+            # on square
+            src = world.get(location)
+            src_coordinates = src['coordinates']
+            dst = world.get(action.dst)
+            dst_coordinates = dst['coordinates']
+            distance = (abs(dst_coordinates[0] - src_coordinates[0]) +
+                        abs(dst_coordinates[1] - src_coordinates[1]))
+            if distance > 1:
+                raise NotAllowed("Too far away")
+        else:
+            # on deck
+            if not obj.get('team'):
+                raise NotAllowed("You must be part of a team before "
+                                 "landing")
+            if self.bots_per_team_on_squares[obj.get('team', None)]:
+                raise NotAllowed("Only the first bot can land without "
+                                 "a portal")
 
 
     @isAllowedRouter.handle(act.UsePortal)

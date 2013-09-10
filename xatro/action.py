@@ -4,7 +4,7 @@ from zope.interface import implements
 from collections import defaultdict
 
 from xatro.interface import IAction
-from xatro.event import Destroyed, AttrDel
+from xatro.event import Destroyed
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
 

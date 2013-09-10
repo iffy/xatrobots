@@ -265,6 +265,33 @@ class StandardRulesTest(TestCase):
                           action.UsePortal(bot, portal))
 
 
+    @defer.inlineCallbacks
+    def test_Move_adjacentSquaresOnly(self):
+        """
+        You can only move to adjacent squares.
+        """
+        world, rules = self.worldAndRules()
+
+        grid = {}
+        for i in xrange(3):
+            for j in xrange(3):
+                square = world.create('square')['id']
+                world.setAttr(square, 'coordinates', (i, j))
+                grid[i,j] = square
+
+        bot = world.create('bot')['id']
+        yield action.CreateTeam(bot, 'foo', 'password').execute(world)
+        yield action.JoinTeam(bot, 'foo', 'password').execute(world)
+        yield action.Move(bot, grid[1,1]).execute(world)
+
+        for c in [(1,0), (0,1), (2,1), (1,2)]:
+            rules.isAllowed(world, action.Move(bot, grid[c]))
+        
+        for c in [(0,0), (2,0), (0,2), (2,2)]:
+            self.assertRaises(NotAllowed, rules.isAllowed, world,
+                              action.Move(bot, grid[c]))
+
+
     def equippedBotWithViableTarget(self, tool):
         """
         Create a scenario in which shooting is allowed.
@@ -299,7 +326,7 @@ class StandardRulesTest(TestCase):
         You are allowed to shoot if you are on the same square and have a
         cannon.
         """
-        bot = self.equippedBotWithViableTarget('cannon')
+        self.equippedBotWithViableTarget('cannon')
 
         # shooting is allowed
         self.rules.isAllowed(self.world, action.Shoot(self.bot, self.target, 1))
@@ -309,7 +336,7 @@ class StandardRulesTest(TestCase):
         """
         A bot must be on the same square as the target it is shooting.
         """
-        bot = self.equippedBotWithViableTarget('cannon')
+        self.equippedBotWithViableTarget('cannon')
 
         square2 = self.world.create('square')['id']
         action.Move(self.target, square2).execute(self.world)
@@ -322,7 +349,7 @@ class StandardRulesTest(TestCase):
         """
         A bot must have a cannon in order to shoot.
         """
-        bot = self.equippedBotWithViableTarget('wrench')
+        self.equippedBotWithViableTarget('wrench')
 
         self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
                           action.Shoot(self.bot, self.target, 1))
@@ -332,7 +359,7 @@ class StandardRulesTest(TestCase):
         """
         You can only shoot things that are vulnerable
         """
-        bot = self.equippedBotWithViableTarget('cannon')
+        self.equippedBotWithViableTarget('cannon')
 
         invulnerable = self.world.create('ore')['id']
         action.Move(invulnerable, self.square).execute(self.world)
@@ -346,7 +373,7 @@ class StandardRulesTest(TestCase):
         You are allowed to Repair if you are on the same square and have a
         wrench.
         """
-        bot = self.equippedBotWithViableTarget('wrench')
+        self.equippedBotWithViableTarget('wrench')
 
         # Repairing is allowed
         self.rules.isAllowed(self.world, action.Repair(self.bot, self.target, 1))
@@ -356,7 +383,7 @@ class StandardRulesTest(TestCase):
         """
         A bot must be on the same square as the target it is Repairing.
         """
-        bot = self.equippedBotWithViableTarget('wrench')
+        self.equippedBotWithViableTarget('wrench')
 
         square2 = self.world.create('square')['id']
         action.Move(self.target, square2).execute(self.world)
@@ -369,7 +396,7 @@ class StandardRulesTest(TestCase):
         """
         A bot must have a wrench in order to Repair.
         """
-        bot = self.equippedBotWithViableTarget('cannon')
+        self.equippedBotWithViableTarget('cannon')
 
         self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
                           action.Repair(self.bot, self.target, 1))
@@ -379,7 +406,7 @@ class StandardRulesTest(TestCase):
         """
         You can only Repair things that are vulnerable
         """
-        bot = self.equippedBotWithViableTarget('wrench')
+        self.equippedBotWithViableTarget('wrench')
 
         invulnerable = self.world.create('ore')['id']
         action.Move(invulnerable, self.square).execute(self.world)
@@ -613,9 +640,6 @@ class StandardRulesTest(TestCase):
         self.assertRaises(NotAllowed, rules.isAllowed,
                           world, action.BreakLock(bot, ore))
 
-
-    def test_workRequirement(self):
-        self.fail('write me')
 
 
 
