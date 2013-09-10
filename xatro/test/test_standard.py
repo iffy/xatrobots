@@ -511,6 +511,108 @@ class StandardRulesTest(TestCase):
                           action.ShareEnergy(bot1, ore, 2))
 
 
+    def test_OpenPortal(self):
+        """
+        You can open a portal
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot = world.create('bot')['id']
+        ore = world.create('ore')['id']
+        action.Move(bot, square).execute(world)
+        action.Move(ore, square).execute(world)
+
+        rules.isAllowed(world, action.OpenPortal(bot, ore, 'user'))
+
+
+    def test_OpenPortal_sameSquare(self):
+        """
+        You must be on the same square as the ore being turned into a portal.
+        """
+        world, rules = self.worldAndRules()
+
+        square1 = world.create('square')['id']
+        bot = world.create('bot')['id']
+        action.Move(bot, square1).execute(world)
+
+        square2 = world.create('square')['id']
+        ore = world.create('ore')['id']
+        action.Move(ore, square2).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed, world,
+                          action.OpenPortal(bot, ore, 'user'))
+
+
+    def test_OpenPortal_ore(self):
+        """
+        You can only open a portal with ore.
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot1 = world.create('bot')['id']
+        bot2 = world.create('bot')['id']
+        action.Move(bot1, square).execute(world)
+        action.Move(bot2, square).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed, world,
+                          action.OpenPortal(bot1, bot2, 'hey'))
+
+
+    def test_locks(self):
+        """
+        You can add/remove a lock on a pylon
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot = world.create('bot')['id']
+        pylon = world.create('pylon')['id']
+        action.Move(bot, square).execute(world)
+        action.Move(pylon, square).execute(world)
+
+        rules.isAllowed(world, action.AddLock(bot, pylon))
+        rules.isAllowed(world, action.BreakLock(bot, pylon))
+
+
+    def test_locks_sameSquare(self):
+        """
+        You can add/remove a lock only if you're on the same square.
+        """
+        world, rules = self.worldAndRules()
+
+        square1 = world.create('square')['id']
+        bot = world.create('bot')['id']
+        action.Move(bot, square1).execute(world)
+
+        square2 = world.create('square')['id']
+        pylon = world.create('pylon')['id']
+        action.Move(pylon, square2).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed,
+                          world, action.AddLock(bot, pylon))
+        self.assertRaises(NotAllowed, rules.isAllowed,
+                          world, action.BreakLock(bot, pylon))
+
+
+    def test_locks_onlyOnPylons(self):
+        """
+        You can add/remove a lock on a pylon only
+        """
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot = world.create('bot')['id']
+        ore = world.create('ore')['id']
+        action.Move(bot, square).execute(world)
+        action.Move(ore, square).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed,
+                          world, action.AddLock(bot, ore))
+        self.assertRaises(NotAllowed, rules.isAllowed,
+                          world, action.BreakLock(bot, ore))
+
 
     def test_workRequirement(self):
         self.fail('write me')

@@ -173,11 +173,8 @@ class StandardRules(object):
 
     
     @isAllowedRouter.handle(act.ConsumeEnergy)
-    @isAllowedRouter.handle(act.OpenPortal)
-    @isAllowedRouter.handle(act.AddLock)
-    @isAllowedRouter.handle(act.BreakLock)
     @requireSquare
-    def isAllowed_onSquare(self, world, action):
+    def isAllowed_ConsumeEnergy(self, world, action):
         pass
 
 
@@ -188,12 +185,29 @@ class StandardRules(object):
         pass
 
 
+    @isAllowedRouter.handle(act.AddLock)
+    @isAllowedRouter.handle(act.BreakLock)
+    @requireSquare
+    @requireKind('target', 'pylon')
+    @requireSameSquare('doer', 'target')
+    def isAllowed_locking(self, world, action):
+        pass
+
     @isAllowedRouter.handle(act.ShareEnergy)
     @requireSquare
     @requireKind('receiver', 'bot')
     @requireSameSquare('giver', 'receiver')
     def isAllowed_ShareEnergy(self, world, action):
         pass
+
+
+    @isAllowedRouter.handle(act.OpenPortal)
+    @requireSquare
+    @requireKind('ore', 'ore')
+    @requireSameSquare('thing', 'ore')
+    def isAllowed_OpenPortal(self, world, action):
+        pass
+
 
     @isAllowedRouter.handle(act.Charge)
     @requireSquare
