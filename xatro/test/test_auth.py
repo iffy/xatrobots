@@ -3,7 +3,7 @@ from twisted.internet import defer
 
 
 from xatro.error import BadPassword
-from xatro.auth import FileStoredPasswords
+from xatro.auth import FileStoredPasswords, MemoryStoredPasswords
 
 
 class FileStoredPasswordsTest(TestCase):
@@ -65,6 +65,52 @@ class FileStoredPasswordsTest(TestCase):
 
         auth2 = FileStoredPasswords(f)
         yield auth2.checkPassword('foo', 'password')
+
+
+
+class MemoryStoredPasswordsTest(TestCase):
+
+
+    @defer.inlineCallbacks
+    def test_createEntity(self):
+        """
+        You can create an entity with a password.
+        """
+        auth = MemoryStoredPasswords()
+        name = yield auth.createEntity('foo', 'password')
+        self.assertEqual(name, 'foo')
+
+
+    @defer.inlineCallbacks
+    def test_checkPassword(self):
+        """
+        You can verify that the correct password is given.
+        """
+        auth = MemoryStoredPasswords()
+        yield auth.createEntity('foo', 'password')
+        name = yield auth.checkPassword('foo', 'password')
+        self.assertEqual(name, 'foo')
+
+
+    @defer.inlineCallbacks
+    def test_checkPassword_fail(self):
+        """
+        The wrong password should result in a BadPassword exception.
+        """
+        auth = MemoryStoredPasswords()
+        yield auth.createEntity('foo', 'password')
+        self.assertFailure(auth.checkPassword('foo', 'not the password'),
+                           BadPassword)
+
+
+    def test_checkPassword_dne(self):
+        """
+        If the entity doesn't exist, it should raise BadPassword
+        """
+        auth = MemoryStoredPasswords()
+        self.assertFailure(auth.checkPassword('foo', 'password'),
+                           BadPassword)
+
 
 
 
