@@ -4,7 +4,7 @@ from xatro.event import Created, Destroyed, AttrSet, ItemAdded, ItemRemoved
 from xatro.event import ActionPerformed, AttrDel
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Look, Shoot
 from xatro.action import Repair, MakeTool, OpenPortal, UsePortal, ListSquares
-from xatro.action import AddLock, BreakLock, JoinTeam, CreateTeam
+from xatro.action import AddLock, BreakLock, JoinTeam, CreateTeam, LookAt
 from xatro.transformer import ToStringTransformer, DictTransformer
 
 
@@ -80,6 +80,10 @@ class ToStringTransformerTest(TestCase):
 
     def test_Look(self):
         self.assertSimple(Look('foo'), 'foo looked around')
+
+
+    def test_LookAt(self):
+        self.assertSimple(LookAt('foo', 'bar'), 'foo looked at bar')
 
 
     def test_Shoot(self):
@@ -222,6 +226,13 @@ class DictTransformerTest(TestCase):
         self.assertSimple(Look('foo'), {
                             'action': 'look',
                             'subject': 'foo'})
+
+
+    def test_LookAt(self):
+        self.assertSimple(LookAt('foo', 'bar'), {
+                            'action': 'lookat',
+                            'subject': 'foo',
+                            'target': 'bar'})
 
 
     def test_Shoot(self):

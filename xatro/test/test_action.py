@@ -9,7 +9,7 @@ from xatro.world import World
 from xatro.action import Move, Charge, ShareEnergy, ConsumeEnergy, Shoot
 from xatro.action import Repair, Look, MakeTool, OpenPortal, UsePortal
 from xatro.action import ListSquares, AddLock, BreakLock, JoinTeam
-from xatro.action import CreateTeam
+from xatro.action import CreateTeam, LookAt
 from xatro.event import Destroyed
 from xatro.auth import FileStoredPasswords
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed, BadPassword
@@ -529,6 +529,33 @@ class LookTest(TestCase):
         thing = world.create('thing')
 
         self.assertEqual(Look(thing['id']).execute(world), [])
+
+
+
+class LookAtTest(TestCase):
+
+
+    def test_IAction(self):
+        verifyObject(IAction, LookAt('foo', 'bar'))
+
+
+    def test_emitters(self):
+        self.assertEqual(LookAt('foo', 'bar').emitters(), ['foo'])
+
+
+    def test_subject(self):
+        self.assertEqual(LookAt('foo', 'bar').subject(), 'foo')
+
+
+    def test_basic(self):
+        """
+        Should return information about the object.
+        """
+        world = World(MagicMock())
+        thing = world.create('thing')
+
+        r = LookAt(thing['id'], thing['id']).execute(world)
+        self.assertEqual(r, world.get(thing['id']))
 
 
 

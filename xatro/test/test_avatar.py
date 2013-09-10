@@ -142,3 +142,4 @@ class AvatarTest(TestCase):
         world.destroy.assert_called_once_with('foo')
 
 
+

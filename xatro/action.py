@@ -97,6 +97,32 @@ class Look(object):
         return []
 
 
+
+class LookAt(object):
+    """
+    Look at a specific object.
+    """
+
+    implements(IAction)
+
+    def __init__(self, thing, target):
+        self.thing = thing
+        self.target = target
+
+
+    def emitters(self):
+        return [self.thing]
+
+
+    def subject(self):
+        return self.thing
+
+
+    def execute(self, world):
+        return world.get(self.target)
+
+
+
 def _ignoreCancellation(err):
     err.trap(defer.CancelledError)
 

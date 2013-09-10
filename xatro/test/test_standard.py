@@ -67,6 +67,7 @@ class StandardRulesTest(TestCase):
         rules = StandardRules()
         expectations = [
             (0, action.Look('foo')),
+            (1, action.LookAt('foo', 'bar')),
             (0, action.Charge('foo')),
             (0, action.ShareEnergy('foo', 'bar', 3)),
             (0, action.ConsumeEnergy('foo', 2)),
@@ -148,6 +149,7 @@ class StandardRulesTest(TestCase):
             action.OpenPortal(bot, 'foo', 'foo'),
             action.AddLock(bot, 'foo'),
             action.BreakLock(bot, 'foo'),
+            action.LookAt(bot, 'foo'),
         ]
 
         for a in actions:
@@ -640,6 +642,27 @@ class StandardRulesTest(TestCase):
                           world, action.AddLock(bot, ore))
         self.assertRaises(NotAllowed, rules.isAllowed,
                           world, action.BreakLock(bot, ore))
+
+
+    def test_LookAt_sameSquare(self):
+        """
+        You can only look at things in the same square.
+        """
+        world, rules = self.worldAndRules()
+
+        s1 = world.create('square')['id']
+        s2 = world.create('square')['id']
+
+        bot = world.create('bot')['id']
+        ore = world.create('ore')['id']
+        action.Move(bot, s1).execute(world)
+        action.Move(ore, s1).execute(world)
+
+        rules.isAllowed(world, action.LookAt(bot, ore))
+
+        action.Move(ore, s2).execute(world)
+        self.assertRaises(NotAllowed, rules.isAllowed,
+                          world, action.LookAt(bot, ore))
 
 
     @defer.inlineCallbacks

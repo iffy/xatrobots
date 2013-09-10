@@ -93,6 +93,7 @@ class StandardRules(object):
     implements(IXatroEngine)
 
     energy_requirements = {
+        act.LookAt: 1,
         act.MakeTool: 1,
         act.OpenPortal: 1,
         act.AddLock: 2,
@@ -212,6 +213,12 @@ class StandardRules(object):
         except KeyError:
             pass
 
+
+    @isAllowedRouter.handle(act.LookAt)
+    @requireSquare
+    @requireSameSquare('thing', 'target')
+    def isAllowed_LookAt(self, world, action):
+        pass
 
     
     @isAllowedRouter.handle(act.ConsumeEnergy)

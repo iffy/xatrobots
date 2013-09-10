@@ -93,6 +93,11 @@ class ToStringTransformer(object):
         return '%s looked around' % (action.thing,)
 
 
+    @router.handle(action.LookAt)
+    def LookAt(self, action):
+        return '%s looked at %s' % (action.thing, action.target)
+
+
     @router.handle(action.MakeTool)
     def MakeTool(self, action):
         return '%s made %s into %s' % (action.thing, action.ore, action.tool)
@@ -275,6 +280,15 @@ class DictTransformer(object):
         return {
             'action': 'look',
             'subject': action.thing,
+        }
+
+
+    @router.handle(action.LookAt)
+    def LookAt(self, action):
+        return {
+            'action': 'lookat',
+            'subject': action.thing,
+            'target': action.target,
         }
 
 
