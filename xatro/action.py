@@ -4,7 +4,7 @@ from zope.interface import implements
 from collections import defaultdict
 
 from xatro.interface import IAction
-from xatro.event import Destroyed
+from xatro.event import Destroyed, AttrDel
 from xatro.error import NotEnoughEnergy, Invulnerable, NotAllowed
 
 
@@ -349,18 +349,41 @@ class MakeTool(object):
         world.setAttr(self.ore, 'kind', 'lifesource')
         world.setAttr(self.thing, 'tool', self.tool)
 
-        # destroy the tool when the creator is dead
-        d = world.onBecome(self.thing, 'location', None)
-        d.addCallback(self._revert, world, self.thing, self.ore)
-
-        # destroy when lifesource is dead
-        d = world.onBecome(self.ore, 'hp', 0)
-        d.addCallback(self._revert, world, self.thing, self.ore)
+        # revert the tool when the creator is dead
+        d_creator = world.onBecome(self.thing, 'location', None)
+        d_creator.addCallback(self._revert, world, self.ore)
+        d_creator.addCallback(self._unequip, world, self.thing)
 
 
-    def _revert(self, ev, world, thing_id, ore_id):
-        world.delAttr(thing_id, 'tool')
+        # revert the tool when lifesource is dead
+        d_lifesource = world.onBecome(self.ore, 'hp', 0)
+        d_lifesource.addCallback(self._revert, world, self.ore)
+        d_lifesource.addCallback(self._unequip, world, self.thing)
+
+        # revert next time a tool is made
+        d_tool = world.onNextChange(self.thing, 'tool')
+        d_tool.addCallback(self._revert, world, self.ore)
+
+        # cancel other actions any time any of these are run
+        d_creator.addCallback(self._cancel, [d_lifesource, d_tool])
+        d_lifesource.addCallback(self._cancel, [d_creator, d_tool])
+        d_tool.addCallback(self._cancel, [d_lifesource, d_creator])
+        for d in [d_creator, d_lifesource, d_tool]:
+            d.addErrback(_ignoreCancellation)
+
+
+    def _revert(self, ev, world, ore_id):
         world.setAttr(ore_id, 'kind', 'ore')
+
+
+    def _unequip(self, ev, world, thing_id):
+        world.delAttr(thing_id, 'tool')
+
+
+    def _cancel(self, ign, deferreds):
+        for d in deferreds:
+            d.cancel()
+
 
 
 

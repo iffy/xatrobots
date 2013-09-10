@@ -608,6 +608,33 @@ class MakeToolTest(TestCase):
         self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
 
 
+    def test_makeSecondTool(self):
+        """
+        If you make a tool from a different piece of ore, your existing tool
+        is unequipped and the lifesource it was made from is reverted to ore.
+        """
+        world = World(MagicMock())
+        ore1 = world.create('ore')
+        ore2 = world.create('ore')
+
+        bot = world.create('bot')
+        MakeTool(bot['id'], ore1['id'], 'knife').execute(world)
+
+        MakeTool(bot['id'], ore2['id'], 'butterfly net').execute(world)
+
+        self.assertEqual(bot['tool'], 'butterfly net',
+                         "Should equip the new tool")
+        self.assertEqual(ore1['kind'], 'ore', "Should revert to ore")
+        self.assertEqual(ore2['kind'], 'lifesource')
+
+        # kill original
+        world.setAttr(ore1['id'], 'hp', 0)
+
+        self.assertEqual(bot['tool'], 'butterfly net', "should not change tool"
+                         " when the original ore dies")
+        self.assertEqual(ore2['kind'], 'lifesource')
+
+
 
 class OpenPortalTest(TestCase):
 
