@@ -322,7 +322,7 @@ class StandardRulesTest(TestCase):
         """
         A bot must have a cannon in order to shoot.
         """
-        bot = self.equippedBotWithViableTarget('repairkit')
+        bot = self.equippedBotWithViableTarget('wrench')
 
         self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
                           action.Shoot(self.bot, self.target, 1))
@@ -339,6 +339,110 @@ class StandardRulesTest(TestCase):
 
         self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
                           action.Shoot(self.bot, invulnerable, 1))
+
+
+    def test_isAllowed_Repair(self):
+        """
+        You are allowed to Repair if you are on the same square and have a
+        wrench.
+        """
+        bot = self.equippedBotWithViableTarget('wrench')
+
+        # Repairing is allowed
+        self.rules.isAllowed(self.world, action.Repair(self.bot, self.target, 1))
+
+
+    def test_Repair_mustBeOnSameSquare(self):
+        """
+        A bot must be on the same square as the target it is Repairing.
+        """
+        bot = self.equippedBotWithViableTarget('wrench')
+
+        square2 = self.world.create('square')['id']
+        action.Move(self.target, square2).execute(self.world)
+
+        self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
+                          action.Repair(self.bot, self.target, 1))
+
+
+    def test_Repair_mustHaveWrench(self):
+        """
+        A bot must have a wrench in order to Repair.
+        """
+        bot = self.equippedBotWithViableTarget('cannon')
+
+        self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
+                          action.Repair(self.bot, self.target, 1))
+
+
+    def test_Repair_targetMustBeVulnerable(self):
+        """
+        You can only Repair things that are vulnerable
+        """
+        bot = self.equippedBotWithViableTarget('wrench')
+
+        invulnerable = self.world.create('ore')['id']
+        action.Move(invulnerable, self.square).execute(self.world)
+
+        self.assertRaises(NotAllowed, self.rules.isAllowed, self.world,
+                          action.Repair(self.bot, invulnerable, 1))
+
+
+    def test_MakeTool(self):
+        """
+        You can make a tool
+        """
+        world, rules = self.worldAndRules()
+
+        # make square and ore
+        square = world.create('square')['id']
+        ore = world.create('ore')['id']
+        action.Move(ore, square).execute(world)
+
+        # make bot
+        bot = world.create('bot')['id']
+        action.Move(bot, square).execute(world)
+
+        rules.isAllowed(world, action.MakeTool(bot, ore, 'cannon'))
+
+
+    def test_MakeTool_oreOnly(self):
+        """
+        You can only make a tool out of ore
+        """
+        world, rules = self.worldAndRules()
+
+        # make square and ore
+        square = world.create('square')['id']
+        otherbot = world.create('bot')['id']
+        action.Move(otherbot, square).execute(world)
+
+        # make bot
+        bot = world.create('bot')['id']
+        action.Move(bot, square).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed, world,
+                          action.MakeTool(bot, otherbot, 'cannon'))
+
+
+    def test_MakeTool_sameSquare(self):
+        """
+        You can only make a tool out of a piece of ore in the same square.
+        """
+        world, rules = self.worldAndRules()
+
+        # make square and ore
+        square = world.create('square')['id']
+        ore = world.create('ore')['id']
+        action.Move(ore, square).execute(world)
+
+        # make bot in different square
+        square2 = world.create('square')['id']
+        bot = world.create('bot')['id']
+        action.Move(bot, square2).execute(world)
+
+        self.assertRaises(NotAllowed, rules.isAllowed, world,
+                          action.MakeTool(bot, ore, 'cannon'))
 
 
     def test_workRequirement(self):

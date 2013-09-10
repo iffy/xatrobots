@@ -181,7 +181,6 @@ class StandardRules(object):
     @isAllowedRouter.handle(act.Charge)
     @isAllowedRouter.handle(act.ShareEnergy)
     @isAllowedRouter.handle(act.ConsumeEnergy)
-    @isAllowedRouter.handle(act.MakeTool)
     @isAllowedRouter.handle(act.OpenPortal)
     @isAllowedRouter.handle(act.AddLock)
     @isAllowedRouter.handle(act.BreakLock)
@@ -208,8 +207,20 @@ class StandardRules(object):
 
     @isAllowedRouter.handle(act.Repair)
     @requireSquare
+    @requireSameSquare('repairman', 'target')
+    @requireTool('wrench')
+    @requireVulnerable('target')
     def isAllowed_Repair(self, world, action):
         pass
+
+
+    @isAllowedRouter.handle(act.MakeTool)
+    @requireSquare
+    @requireSameSquare('thing', 'ore')
+    def isAllowed_MakeTool(self, world, action):
+        ore = world.get(action.ore)
+        if ore.get('kind') != 'ore':
+            raise NotAllowed("You may only make tools out of ore")
 
 
     @isAllowedRouter.handle(act.Move)
