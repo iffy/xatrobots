@@ -779,5 +779,21 @@ class StandardRulesTest(TestCase):
         self.assertRaises(NotAllowed, rules.isAllowed, world, 'anything')
 
 
+    @defer.inlineCallbacks
+    def test_botsThatLoseTheirHitpointsAreSentToTheDeck(self):
+        world, rules = self.worldAndRules()
+
+        square = world.create('square')['id']
+        bot = world.create('bot')
+        bot_id = bot['id']
+
+        yield world.execute(action.CreateTeam(bot_id, 'bar', 'password'))
+        yield world.execute(action.JoinTeam(bot_id, 'bar', 'password'))
+
+        world.execute(action.Move(bot_id, square))
+        world.setAttr(bot_id, 'hp', 0)
+        self.assertEqual(bot['location'], None)
+
+
 
 

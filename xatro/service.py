@@ -45,9 +45,9 @@ def makeBoard(world, options):
     from xatro.action import Move
     import random
 
-    # XXX hard-coded 4 x 4 for now
-    for i in xrange(4):
-        for j in xrange(4):
+    # XXX hard-coded for now
+    for i in xrange(2):
+        for j in xrange(2):
             sq = world.create('square')['id']
             world.setAttr(sq, 'coordinates', (i, j))
             pylon = world.create('pylon')['id']
@@ -57,8 +57,8 @@ def makeBoard(world, options):
                 ore = world.create('ore')['id']
                 Move(ore, sq).execute(world)
 
-            ls = world.create('lifesource')['id']
-            Move(ls, sq).execute(world)
+            #ls = world.create('lifesource')['id']
+            #Move(ls, sq).execute(world)
 
 
 

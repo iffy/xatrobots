@@ -163,6 +163,10 @@ class StandardRules(object):
                         # first time landing
                         world.setAttr(event.id, 'hp', self.bot_starting_hp)
                     team_on_squares.add(event.id)
+            elif event.name == 'hp':
+                if event.value == 0:
+                    # died, send them to the deck
+                    act.Move(event.id, None).execute(world)
         elif obj['kind'] == 'lifesource':
             if event.name == 'kind':
                 # ore just became lifesource

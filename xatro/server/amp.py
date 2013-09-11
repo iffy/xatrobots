@@ -6,7 +6,7 @@ import json
 from xatro.transformer import DictTransformer
 from xatro.avatar import Avatar
 from xatro import action
-from xatro.error import NotAllowed
+from xatro.error import NotAllowed, NotEnoughEnergy
 
 
 
@@ -39,6 +39,8 @@ class WorldCommand(amp.Command):
     ]
     errors = {
         NotAllowed: 'NOT_ALLOWED',
+        NotEnoughEnergy: 'NOT_ENOUGH_ENERGY',
+        KeyError: 'NOT_FOUND',
     }
 
 
@@ -94,7 +96,10 @@ class AvatarProtocol(amp.AMP):
 
     @WorldCommand.responder
     def handleWorldCommand(self, name, args, work=None):
+        print name, args
         cls = self.commands[name]
+        if name in ['share', 'shoot', 'repair']:
+            args = (args[0], int(args[1]))
         d = defer.maybeDeferred(self.avatar.execute, cls, *args)
         d.addCallback(lambda r: {'data': json.dumps(r)})
         return d

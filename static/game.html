@@ -33,6 +33,9 @@
     fill: #666;
     -webkit-animation: lifesource 5s infinite;
   }
+  .portal {
+    fill: #0f0;
+  }
   </style>
 </head>
 <body ng-app="game">
@@ -273,7 +276,7 @@ app.directive('board', function() {
             .attr('class', 'bot');
 
           bots.transition()
-            .duration(200)
+            .duration(100)
             .attr('cx', function(d) {
               return d.sq_x;
             })

@@ -395,6 +395,8 @@ class MakeTool(object):
         d_creator.addCallback(self._revert, world, self.ore)
         d_creator.addCallback(self._unequip, world, self.thing)
 
+        d_creator_destroyed = world.onEvent(self.thing, Destroyed(self.thing))
+        d_creator_destroyed.addCallback(self._revert, world, self.ore)
 
         # revert the tool when lifesource is dead
         d_lifesource = world.onBecome(self.ore, 'hp', 0)
@@ -406,10 +408,10 @@ class MakeTool(object):
         d_tool.addCallback(self._revert, world, self.ore)
 
         # cancel other actions any time any of these are run
-        d_creator.addCallback(self._cancel, [d_lifesource, d_tool])
-        d_lifesource.addCallback(self._cancel, [d_creator, d_tool])
-        d_tool.addCallback(self._cancel, [d_lifesource, d_creator])
-        for d in [d_creator, d_lifesource, d_tool]:
+        all_d = [d_creator, d_lifesource, d_tool, d_creator_destroyed]
+        for d in all_d:
+            other_d = [x for x in all_d if x != d]
+            d.addCallback(self._cancel, other_d)
             d.addErrback(_ignoreCancellation)
 
 

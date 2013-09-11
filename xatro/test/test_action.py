@@ -671,6 +671,21 @@ class MakeToolTest(TestCase):
         self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
 
 
+    def test_revertWhenBotDestroyed(self):
+        """
+        If the thing that made the tool is destroyed, revert to ore.
+        """
+        world = World(MagicMock())
+        ore = world.create('ore')
+        bot = world.create('bot')
+        MakeTool(bot['id'], ore['id'], 'knife').execute(world)
+
+        # moving to None is death
+        world.destroy(bot['id'])
+
+        self.assertEqual(ore['kind'], 'ore', "Should revert to ore")
+
+
     def test_makeSecondTool(self):
         """
         If you make a tool from a different piece of ore, your existing tool
