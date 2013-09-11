@@ -454,6 +454,10 @@ class OpenPortal(object):
         """
         Open a portal for another bot.
         """
+        target = world.get(self.ore)
+        if target['kind'] != 'ore':
+            raise NotAllowed("Only ore can be converted")
+
         world.setAttr(self.ore, 'kind', 'portal')
         world.setAttr(self.ore, 'portal_user', self.user)
 

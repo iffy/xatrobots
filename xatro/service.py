@@ -66,8 +66,6 @@ def makeService(options):
     from twisted.internet import reactor
 
     # rules/game engine
-    from mock import MagicMock
-
     engine = XatroEngine(StandardRules())
     
     # web

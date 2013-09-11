@@ -761,6 +761,18 @@ class OpenPortalTest(TestCase):
         self.assertNotIn('portal_user', ore)
 
 
+    def test_onlyOre(self):
+        """
+        Only ore can be used to open a portal.
+        """
+        world = World(MagicMock())
+        notore = world.create('notore')
+        bot = world.create('bot')
+        self.assertRaises(NotAllowed,
+                          OpenPortal(bot['id'], notore['id'], 'user').execute,
+                          world)
+
+
 
 class UsePortalTest(TestCase):
 
