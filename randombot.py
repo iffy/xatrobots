@@ -251,6 +251,8 @@ class RandomBot(object):
     def do_move(self):
         squares = yield self.squares.get()
         adjacent_squares = [x for x in squares if self._isAdjacent(x)]
+        if not adjacent_squares:
+            return
         square = random.choice(adjacent_squares)
         try:
             yield self.x('move', [square['id']])
@@ -361,6 +363,7 @@ class RandomBot(object):
         """
         # make another bot join
         bot = RandomBot(firstone=False, friendlies=self.friendlies)
+        bot.things = self.things
         bot.team = self.team
         bot.team_password = self.team_password
         protocol = ClientProtocol(bot)
@@ -379,6 +382,8 @@ class RandomBot(object):
         except Exception as e:
             print 'error opening portal'
             print e
+            self.things.pop(ore)
+            protocol.transport.loseConnection()
 
         # XXX this is odd
         bot.current_square = self.current_square

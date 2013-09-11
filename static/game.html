@@ -7,11 +7,6 @@
     box-sizing: border-box;
     font-family: monospace;
   }
-  @-webkit-keyframes lifesource {
-     0% { fill: #999; }
-     50% { fill: #f90; }
-     100% { fill: #999; }
-  }
   .viewport {
   }
   svg {
@@ -21,20 +16,19 @@
     fill: #fff;
   }
   circle.bot {
-    fill: #000;
+    fill: #08c;
   }
-  rect.pylon {
+  .pylon {
     fill: #999;
   }
   .ore {
     fill: #000;
   }
   .lifesource {
-    fill: #666;
-    -webkit-animation: lifesource 5s infinite;
+    fill: #f90;
   }
   .portal {
-    fill: #0f0;
+    fill: #0c8;
   }
   </style>
 </head>
@@ -79,7 +73,6 @@ app.factory('State', function($http, $rootScope) {
   // Look for events
   source.addEventListener('ev', function(sse_message) {
     var data = JSON.parse(sse_message.data);
-    console.log(data);
     var handler = this['handle_'+data.ev];
     if (handler != undefined) {
       $rootScope.$apply(function() {
@@ -95,7 +88,6 @@ app.factory('State', function($http, $rootScope) {
     this.data.objects[ev.id] = {'id': ev.id};
   }
   this.handle_destroyed = function(ev) {
-    console.log('destroyed');
     delete this.data.objects[ev.id];
   }
   this.handle_attrset = function(ev) {
@@ -112,14 +104,12 @@ app.factory('State', function($http, $rootScope) {
     obj[ev.name].push(ev.value);
   }
   this.handle_itemremoved = function(ev) {
-    console.log(ev);
     var arr = this.data.objects[ev.id][ev.name];
     var idx = arr.indexOf(ev.value);
     arr.splice(idx, 1);
-    console.log(arr);
   }
   this.handle_action = function(ev) {
-    console.log(['action', ev]);
+    
   }
 
 
@@ -147,7 +137,7 @@ app.controller('BoardCtrl', function($scope, State) {
 });
 
 
-app.directive('board', function() {
+app.directive('board', function($timeout) {
   return {
     restrict: 'E',
     scope: {
@@ -180,15 +170,22 @@ app.directive('board', function() {
       var board_h = height;
 
       var g_ore = content.append('g');
+      var g_portals = content.append('g');
       var g_lifesource = content.append('g');
       var g_pylons = content.append('g');
       var g_bots = content.append('g');
 
-      scope.$watch('state', function(newval, oldval) {
+      function doCycle() {
+        $timeout(function() {
+          scope.updateView(scope.state);
+          doCycle();
+        }, 2000);
+      }
+      doCycle();
+
+      scope.updateView = function(newval) {
         // ignore non-changes
-        if (newval === oldval) {
-          return;
-        }
+        
 
         var kinds = newval.kinds;
 
@@ -316,8 +313,8 @@ app.directive('board', function() {
             .attr('y', function(d) {
               return d.sq_y;
             })
-            .attr('width', 8)
-            .attr('height', 8)
+            .attr('width', 15)
+            .attr('height', 15)
             .attr('rx', 2)
             .attr('ry', 2)
             .attr('class', 'pylon');
@@ -353,12 +350,49 @@ app.directive('board', function() {
             .attr('y', function(d) {
               return d.sq_y;
             })
-            .attr('width', 5)
-            .attr('height', 5)
+            .attr('width', 4)
+            .attr('height', 4)
             .attr('rx', 2)
             .attr('ry', 2)
             .attr('class', 'ore');
           ore_elems.exit().remove();
+        }
+
+        //---------------------------------------------------------------------
+        // portal
+        //---------------------------------------------------------------------
+        if (kinds['portal'] !== undefined) {
+          var portals = [];
+          kinds['portal'].forEach(function(portal) {
+            if (portal.location === undefined || portal.location === null) {
+              return;
+            }
+            var square = newval.objects[portal.location];
+            var coord = locWithinSquare(portal.id, square, square_space,
+                                        square_padded_dim, square_padding)
+            portals.push({
+              'sq_x': coord[0],
+              'sq_y': coord[1],
+              'portal': portal,
+            });
+          });
+
+          var portal_elems = g_portals.selectAll('rect')
+            .data(portals, function(d) { return d.portal.id; });
+
+          portal_elems.enter().append('rect')
+            .attr('x', function(d) {
+              return d.sq_x;
+            })
+            .attr('y', function(d) {
+              return d.sq_y;
+            })
+            .attr('width', 8)
+            .attr('height', 8)
+            .attr('rx', 2)
+            .attr('ry', 2)
+            .attr('class', 'portal');
+          portal_elems.exit().remove();
         }
 
         //---------------------------------------------------------------------
@@ -390,15 +424,15 @@ app.directive('board', function() {
             .attr('y', function(d) {
               return d.sq_y;
             })
-            .attr('width', 5)
-            .attr('height', 5)
+            .attr('width', 8)
+            .attr('height', 8)
             .attr('rx', 2)
             .attr('ry', 2)
             .attr('class', 'lifesource');
           lifesource_elems.exit().remove();
         }
         
-      }, true);
+      };
       
       function locWithinSquare(id, square, square_space, padded_dim, padding) {
         var int_id = Math.abs(parseInt(id.replace(/-/g, ''), 16));

@@ -46,8 +46,8 @@ def makeBoard(world, options):
     import random
 
     # XXX hard-coded for now
-    for i in xrange(2):
-        for j in xrange(2):
+    for i in xrange(4):
+        for j in xrange(4):
             sq = world.create('square')['id']
             world.setAttr(sq, 'coordinates', (i, j))
             pylon = world.create('pylon')['id']
